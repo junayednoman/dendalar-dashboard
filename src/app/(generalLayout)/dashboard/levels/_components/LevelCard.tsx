@@ -15,6 +15,9 @@ import Image from "next/image";
 export interface LevelItem {
   id: string;
   name: string;
+  index?: number;
+  isCompleted?: boolean;
+  isLocked?: boolean;
 }
 
 interface LevelCardProps {

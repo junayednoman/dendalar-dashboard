@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { jwtDecode } from "jwt-decode";
+import { toast } from "sonner";
 
 import AForm from "@/components/form/AForm";
 import { AInput } from "@/components/form/AInput";
@@ -47,6 +48,12 @@ const LoginForm = () => {
       if (!accessToken) return;
 
       const decodedUser = jwtDecode<DecodedAccessToken>(accessToken);
+      const normalizedRole = decodedUser.role?.toUpperCase();
+
+      if (normalizedRole !== "ADMIN") {
+        toast.warning("Only admin can access this dashboard.");
+        return;
+      }
 
       dispatch(
         setUser({
@@ -54,7 +61,7 @@ const LoginForm = () => {
             id: decodedUser.id,
             _id: decodedUser.id,
             email: decodedUser.email,
-            role: decodedUser.role,
+            role: normalizedRole,
           },
           token: accessToken,
         }),
@@ -85,8 +92,8 @@ const LoginForm = () => {
         <AForm
           schema={loginSchema}
           defaultValues={{
-            email: "junayednoman05@gmail.com",
-            password: "SecurePass1234!",
+            email: "lerner.curious@gmail.com",
+            password: "Admin@123",
             rememberPassword: false,
           }}
           onSubmit={onSubmit}

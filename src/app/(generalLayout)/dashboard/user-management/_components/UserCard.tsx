@@ -5,31 +5,51 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { UserDetailsModal } from "./UserDetailsModal";
+import { toast } from "sonner";
 
-export function UserCard() {
-  const handleChangeStatus = () => {};
+type UserCardProps = {
+  user: {
+    id: string;
+    email: string;
+    role: string;
+    createdAt: string;
+    profile?: {
+      name?: string;
+      image?: string;
+    };
+  };
+};
+
+export function UserCard({ user }: UserCardProps) {
+  const handleChangeStatus = () => {
+    toast.info("User status action is not connected yet.");
+  };
+  const displayName = user.profile?.name || "Unknown User";
+  const imageSrc =
+    user.profile?.image ||
+    "https://static.vecteezy.com/system/resources/previews/023/402/465/non_2x/man-avatar-free-vector.jpg";
+  const roleLabel = user.role?.toLowerCase();
+  const joinedAt = new Date(user.createdAt).toLocaleDateString();
 
   return (
     <div className="flex items-center justify-between rounded-lg border border-border p-4 transition-colors">
-      <Link href="/dashboard/user-management" className="flex gap-2">
+      <Link href={`/dashboard/user-management/${user.id}`} className="flex gap-2">
         <Image
-          src="https://static.vecteezy.com/system/resources/previews/023/402/465/non_2x/man-avatar-free-vector.jpg"
-          alt="Sarah Johnson"
+          src={imageSrc}
+          alt={displayName}
           width={50}
           height={50}
           className="mr-3 rounded-full"
         />
 
         <div className="flex flex-col">
-          Junayed Noman
-          <p className="text-sm text-muted-foreground">
-            junayednoman@gmail.com
-          </p>
+          {displayName}
+          <p className="text-sm text-muted-foreground">{user.email}</p>
         </div>
 
         <div>
           <Badge variant="default" className="bg-green-600/20 text-green-600">
-            active
+            {roleLabel}
           </Badge>
         </div>
       </Link>
@@ -37,12 +57,11 @@ export function UserCard() {
       <div className="flex items-center gap-2">
         <UserDetailsModal
           user={{
-            name: "Michael Epkot",
-            role: "Flutter Developer",
-            avatar:
-              "https://img.freepik.com/free-psd/3d-illustration-human-avatar-profile_23-2150671142.jpg?semt=ais_hybrid&w=740&q=80",
+            name: displayName,
+            role: user.role,
+            avatar: imageSrc,
           }}
-          bio="Everyone on this platform is so stupid, it's embarrassing. You all suck and are a bunch of losers."
+          bio={`Joined on ${joinedAt}. Email: ${user.email}`}
         >
           <Button className="w-9">
             <Eye />
