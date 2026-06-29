@@ -75,6 +75,9 @@ export const baseApi = createApi({
     "plans",
     "notification",
     "content",
+    "levels",
+    "chapters",
+    "lessons",
   ],
   endpoints: () => ({}),
 });

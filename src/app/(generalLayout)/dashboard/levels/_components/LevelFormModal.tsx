@@ -18,7 +18,7 @@ import {
 interface LevelFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (values: LevelFormValues) => void;
+  onSubmit: (values: LevelFormValues) => void | Promise<void>;
   defaultValues?: LevelFormValues;
   title: string;
   description: string;
@@ -34,9 +34,8 @@ const LevelFormModal = ({
   description,
   submitLabel,
 }: LevelFormModalProps) => {
-  const handleSubmit = (values: LevelFormValues) => {
-    onSubmit(values);
-    onOpenChange(false);
+  const handleSubmit = async (values: LevelFormValues) => {
+    await onSubmit(values);
   };
 
   return (
@@ -65,6 +64,15 @@ const LevelFormModal = ({
               name="name"
               label="Level name"
               placeholder="Level name"
+              required
+              className="h-12 rounded-2xl"
+            />
+
+            <AInput
+              name="index"
+              label="Level index"
+              placeholder="Level index"
+              type="number"
               required
               className="h-12 rounded-2xl"
             />

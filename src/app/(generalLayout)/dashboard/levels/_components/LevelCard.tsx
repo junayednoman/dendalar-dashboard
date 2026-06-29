@@ -16,8 +16,6 @@ export interface LevelItem {
   id: string;
   name: string;
   index?: number;
-  isCompleted?: boolean;
-  isLocked?: boolean;
 }
 
 interface LevelCardProps {
@@ -54,7 +52,7 @@ const LevelCard = ({ level, onEdit, onDelete }: LevelCardProps) => {
               </DropdownMenuItem>
               <AAlertDialog
                 title="Delete level?"
-                description={`This will permanently remove ${level.name}. This action cannot be undone.`}
+                description={`This will permanently remove the level and the chapters, lessons and questions under it`}
                 cancelText="Keep level"
                 actionText="Delete"
                 onAction={() => onDelete(level)}

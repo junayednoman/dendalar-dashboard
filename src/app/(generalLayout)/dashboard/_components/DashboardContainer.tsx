@@ -6,8 +6,8 @@ import ASpinner from "@/components/ui/ASpinner";
 import { useGetDashboardStatsQuery } from "@/redux/api/dashboardApi";
 import { useState } from "react";
 import TopStats from "./TopStats";
-import DashboardTabs from "./tab/DashboardTabs";
 import { UserOverview } from "./chart/UserOverview";
+import LevelsPreviewPanel from "./LevelsPreviewPanel";
 import NewUsers from "./newUsers/NewUsers";
 
 const DashboardContainer = () => {
@@ -45,7 +45,7 @@ const DashboardContainer = () => {
           <NewUsers />
         </div>
         <div className="w-[38%] border-2 rounded-2xl p-4 py-6 h-fit">
-          <DashboardTabs />
+          <LevelsPreviewPanel />
         </div>
       </div>
     </AContainer>

@@ -19,13 +19,15 @@ import {
 
 export interface LessonItem {
   id: string;
-  name: string;
   lessonType: string;
-  chapter: string;
-  level: string;
-  language: string;
-  index: string;
-  iconSrc?: string;
+  chapterId: string;
+  index: number;
+  chapter?: {
+    id: string;
+    name: string;
+    index: number;
+    levelId: string;
+  };
 }
 
 interface LessonCardProps {
@@ -35,9 +37,8 @@ interface LessonCardProps {
 }
 
 const lessonIconMap = {
-  Sentence: BookText,
-  Conversation: MessageCircleMore,
-  Repeat: RotateCcw,
+  SENTENCE: BookText,
+  DIALOGUE: MessageCircleMore,
 } as const;
 
 const LessonCard = ({ lesson, onEdit, onDelete }: LessonCardProps) => {
@@ -72,7 +73,7 @@ const LessonCard = ({ lesson, onEdit, onDelete }: LessonCardProps) => {
 
               <AAlertDialog
                 title="Delete lesson?"
-                description={`This will permanently remove ${lesson.name}. This action cannot be undone.`}
+                description={`This will permanently remove ${lesson.lessonType} lesson ${lesson.index}. This action cannot be undone.`}
                 cancelText="Keep lesson"
                 actionText="Delete"
                 onAction={() => onDelete(lesson)}
@@ -91,22 +92,21 @@ const LessonCard = ({ lesson, onEdit, onDelete }: LessonCardProps) => {
         </div>
 
         <div className="flex h-full items-center justify-center rounded-[18px] bg-black/20">
-          {lesson.iconSrc ? (
-            <img
-              src={lesson.iconSrc}
-              alt={lesson.name}
-              className="h-[76px] w-[76px] object-contain"
-            />
-          ) : (
-            Icon && <Icon className="size-16 text-white" strokeWidth={1.75} />
-          )}
+          {Icon ? (
+            <Icon className="size-16 text-white" strokeWidth={1.75} />
+          ) : null}
         </div>
       </div>
 
       <div className="text-center">
         <h3 className="text-[20px] leading-none font-semibold text-white">
-          {lesson.name}
+          {lesson.lessonType}
         </h3>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {lesson.chapter?.name
+            ? `${lesson.chapter.name} • Lesson ${lesson.index}`
+            : `Lesson ${lesson.index}`}
+        </p>
       </div>
     </div>
   );

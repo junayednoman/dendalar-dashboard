@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import AErrorMessage from "@/components/AErrorMessage";
+import handleMutation from "@/utils/handleMutation";
 import { Button } from "@/components/ui/button";
+import ASpinner from "@/components/ui/ASpinner";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -11,106 +14,117 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, Plus } from "lucide-react";
-import { toast } from "sonner";
 import LessonCard, { LessonItem } from "./LessonCard";
 import LessonFormModal, { LessonFormValues } from "./LessonFormModal";
+import { useGetChaptersQuery } from "@/redux/api/chaptersApi";
+import {
+  useCreateLessonMutation,
+  useDeleteLessonMutation,
+  useGetLessonsQuery,
+  useUpdateLessonMutation,
+} from "@/redux/api/lessonsApi";
+import { useGetLevelsQuery } from "@/redux/api/levelsApi";
 
-const chapterOptions = ["Alphabet", "Alphabet++", "Greetings", "Basics"];
-const levelOptions = ["Level A0", "Level A1", "Level A2", "Level B0"];
-const lessonTypeOptions = ["Sentence", "Conversation", "Repeat"];
+const lessonTypeOptions = ["SENTENCE", "DIALOGUE"];
 
-const initialLessons: LessonItem[] = [
-  {
-    id: "1",
-    name: "Sentence 01",
-    lessonType: "Sentence",
-    chapter: "Alphabet",
-    level: "Level A0",
-    language: "English",
-    index: "01",
-    iconSrc: "",
-  },
-  {
-    id: "2",
-    name: "Conversation 02",
-    lessonType: "Conversation",
-    chapter: "Alphabet++",
-    level: "Level A1",
-    language: "Arabic",
-    index: "02",
-    iconSrc: "",
-  },
-  {
-    id: "3",
-    name: "Repeat 03",
-    lessonType: "Repeat",
-    chapter: "Greetings",
-    level: "Level A0",
-    language: "Spanish",
-    index: "03",
-    iconSrc: "",
-  },
-];
+type LessonApiItem = {
+  id: string;
+  index: number;
+  lessonType: string;
+  chapterId: string;
+  chapter?: {
+    id: string;
+    name: string;
+    index: number;
+    levelId: string;
+  };
+};
 
 const LessonsContainer = () => {
-  const [lessons, setLessons] = useState(initialLessons);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedChapter, setSelectedChapter] = useState("all");
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingLesson, setEditingLesson] = useState<LessonItem | null>(null);
+  const [editingLesson, setEditingLesson] = useState<LessonApiItem | null>(
+    null,
+  );
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useGetLessonsQuery(selectedChapter);
+  const { data: chaptersData } = useGetChaptersQuery(undefined);
+  const { data: levelsData } = useGetLevelsQuery(undefined);
+  const [createLesson, { isLoading: isCreating }] = useCreateLessonMutation();
+  const [updateLesson, { isLoading: isUpdating }] = useUpdateLessonMutation();
+  const [deleteLesson] = useDeleteLessonMutation();
+  const lessons: LessonApiItem[] = data?.data || [];
+  const chapters = chaptersData?.data || [];
+  const levels = levelsData?.data || [];
 
   const filteredLessons = useMemo(() => {
     return lessons.filter((lesson) => {
-      const matchesSearch = lesson.name
+      const matchesSearch = lesson.lessonType
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
-      const matchesChapter =
-        selectedChapter === "all" || lesson.chapter === selectedChapter;
       const matchesLevel =
-        selectedLevel === "all" || lesson.level === selectedLevel;
+        selectedLevel === "all" ||
+        lesson.chapter?.levelId === selectedLevel;
 
-      return matchesSearch && matchesChapter && matchesLevel;
+      return matchesSearch && matchesLevel;
     });
   }, [lessons, searchTerm, selectedChapter, selectedLevel]);
 
-  const buildLessonName = (values: LessonFormValues) =>
-    `${values.lessonType} ${values.index}`;
+  const chapterOptions = chapters
+    .filter((chapter: any) => selectedLevel === "all" || chapter.levelId === selectedLevel)
+    .map((chapter: any) => {
+      const level = levels.find((item: any) => item.id === chapter.levelId);
+      return {
+        label: chapter.name,
+        value: chapter.id,
+        levelLabel: level?.name,
+      };
+    });
 
-  const handleCreateLesson = (values: LessonFormValues) => {
-    setLessons((prev) => [
-      {
-        id: crypto.randomUUID(),
-        ...values,
-        name: buildLessonName(values),
-        language: "English",
-      },
-      ...prev,
-    ]);
-    toast.success("Lesson created successfully");
+  const levelOptions = levels.map((level: any) => ({
+    label: level.name,
+    value: level.id,
+  }));
+
+  const handleCreateLesson = async (values: LessonFormValues) => {
+    await handleMutation(values, createLesson, "Creating lesson...", () => {
+      setIsCreateOpen(false);
+    });
   };
 
-  const handleEditLesson = (values: LessonFormValues) => {
+  const handleEditLesson = async (values: LessonFormValues) => {
     if (!editingLesson) return;
 
-    setLessons((prev) =>
-      prev.map((lesson) =>
-        lesson.id === editingLesson.id
-          ? {
-              ...lesson,
-              ...values,
-              name: buildLessonName(values),
-            }
-          : lesson,
-      ),
+    await handleMutation(
+      {
+        id: editingLesson.id,
+        data: {
+          lessonType: values.lessonType,
+          index: values.index,
+          chapterId: values.chapterId,
+        },
+      },
+      updateLesson,
+      "Updating lesson...",
+      () => {
+        setEditingLesson(null);
+      },
     );
-    toast.success("Lesson updated successfully");
-    setEditingLesson(null);
   };
 
-  const handleDeleteLesson = (lesson: LessonItem) => {
-    setLessons((prev) => prev.filter((item) => item.id !== lesson.id));
-    toast.success(`${lesson.name} deleted successfully`);
+  const handleDeleteLesson = async (lesson: LessonItem) => {
+    await handleMutation(lesson.id, deleteLesson, "Deleting lesson...");
+  };
+
+  const handleOpenEditLesson = (lesson: LessonItem) => {
+    setEditingLesson(lesson as LessonApiItem);
   };
 
   return (
@@ -134,9 +148,9 @@ const LessonsContainer = () => {
               </SelectTrigger>
               <SelectContent className="border-border bg-card text-white">
                 <SelectItem value="all">All chapters</SelectItem>
-                {chapterOptions.map((chapter) => (
-                  <SelectItem key={chapter} value={chapter}>
-                    {chapter}
+                {chapterOptions.map((chapter: { label: string; value: string }) => (
+                  <SelectItem key={chapter.value} value={chapter.value}>
+                    {chapter.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -148,9 +162,9 @@ const LessonsContainer = () => {
               </SelectTrigger>
               <SelectContent className="border-border bg-card text-white">
                 <SelectItem value="all">All levels</SelectItem>
-                {levelOptions.map((level) => (
-                  <SelectItem key={level} value={level}>
-                    {level}
+                {levelOptions.map((level: { label: string; value: string }) => (
+                  <SelectItem key={level.value} value={level.value}>
+                    {level.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -166,13 +180,17 @@ const LessonsContainer = () => {
           </div>
         </div>
 
-        {filteredLessons.length ? (
+        {isLoading ? (
+          <ASpinner size={120} className="min-h-[320px]" />
+        ) : isError ? (
+          <AErrorMessage error={error} onRetry={refetch} className="min-h-[320px]" />
+        ) : filteredLessons.length ? (
           <div className="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {filteredLessons.map((lesson) => (
               <LessonCard
                 key={lesson.id}
                 lesson={lesson}
-                onEdit={setEditingLesson}
+                onEdit={handleOpenEditLesson}
                 onDelete={handleDeleteLesson}
               />
             ))}
@@ -197,17 +215,14 @@ const LessonsContainer = () => {
         onSubmit={handleCreateLesson}
         defaultValues={{
           lessonType: "",
-          chapter: "",
-          level: "",
-          index: "01",
-          iconSrc: "",
+          chapterId: "",
+          index: 1,
         }}
         title="Add New Lesson"
         description="Add new lesson within a specific level"
-        submitLabel="Submit"
+        submitLabel={isCreating ? "Submitting..." : "Submit"}
         lessonTypeOptions={lessonTypeOptions}
         chapterOptions={chapterOptions}
-        levelOptions={levelOptions}
       />
 
       <LessonFormModal
@@ -219,17 +234,14 @@ const LessonsContainer = () => {
         onSubmit={handleEditLesson}
         defaultValues={{
           lessonType: editingLesson?.lessonType ?? "",
-          chapter: editingLesson?.chapter ?? "",
-          level: editingLesson?.level ?? "",
-          index: editingLesson?.index ?? "01",
-          iconSrc: editingLesson?.iconSrc ?? "",
+          chapterId: editingLesson?.chapterId ?? "",
+          index: editingLesson?.index ?? 1,
         }}
         title="Update Lesson"
         description="Update lesson details within a specific level"
-        submitLabel="Update"
+        submitLabel={isUpdating ? "Updating..." : "Update"}
         lessonTypeOptions={lessonTypeOptions}
         chapterOptions={chapterOptions}
-        levelOptions={levelOptions}
       />
     </>
   );

@@ -13,9 +13,13 @@ import { Edit3, MoreHorizontal, Trash2 } from "lucide-react";
 export interface ChapterItem {
   id: string;
   name: string;
-  level: string;
-  index: string;
-  imageSrc: string;
+  levelId: string;
+  index: number;
+  level?: {
+    id: string;
+    name: string;
+    index: number;
+  };
 }
 
 interface ChapterCardProps {
@@ -54,7 +58,7 @@ const ChapterCard = ({ chapter, onEdit, onDelete }: ChapterCardProps) => {
 
               <AAlertDialog
                 title="Delete chapter?"
-                description={`This will permanently remove ${chapter.name}. This action cannot be undone.`}
+                description={`This will permanently remove the chapter and the lessons and questions under it`}
                 cancelText="Keep chapter"
                 actionText="Delete"
                 onAction={() => onDelete(chapter)}
@@ -74,7 +78,7 @@ const ChapterCard = ({ chapter, onEdit, onDelete }: ChapterCardProps) => {
 
         <div className="flex h-full items-center justify-center rounded-[18px] bg-black/20">
           <img
-            src={chapter.imageSrc}
+            src="/window.svg"
             alt={chapter.name}
             className="h-[120px] w-[120px] object-contain"
           />
@@ -85,6 +89,11 @@ const ChapterCard = ({ chapter, onEdit, onDelete }: ChapterCardProps) => {
         <h3 className="text-[20px] leading-none font-semibold text-white">
           {chapter.name}
         </h3>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {chapter.level?.name
+            ? `Level ${chapter.level.name}`
+            : `Index ${chapter.index}`}
+        </p>
       </div>
     </div>
   );

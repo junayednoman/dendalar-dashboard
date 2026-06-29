@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import chapterImg from "@/assets/icon.svg";
+import AErrorMessage from "@/components/AErrorMessage";
+import handleMutation from "@/utils/handleMutation";
 import { Button } from "@/components/ui/button";
+import ASpinner from "@/components/ui/ASpinner";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -12,74 +14,100 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search, Plus } from "lucide-react";
-import { toast } from "sonner";
 import ChapterCard, { ChapterItem } from "./ChapterCard";
 import ChapterFormModal, { ChapterFormValues } from "./ChapterFormModal";
+import {
+  useCreateChapterMutation,
+  useDeleteChapterMutation,
+  useGetChaptersQuery,
+  useUpdateChapterMutation,
+} from "@/redux/api/chaptersApi";
+import { useGetLevelsQuery } from "@/redux/api/levelsApi";
 
-const levelOptions = ["Level A0", "Level A1", "Level A2", "Level B0"];
+type ChapterApiItem = {
+  id: string;
+  name: string;
+  index: number;
+  levelId: string;
+  createdAt: string;
+  updatedAt: string;
+  level?: {
+    id: string;
+    name: string;
+    index: number;
+  };
+  lessons?: {
+    id: string;
+    index: number;
+    lessonType: string;
+    chapterId: string;
+  }[];
+};
 
-const initialChapters: ChapterItem[] = [
-  {
-    id: "1",
-    name: "Alphabet",
-    level: "Level A0",
-    index: "1",
-    imageSrc: chapterImg.src,
-  },
-  {
-    id: "2",
-    name: "Alphabet++",
-    level: "Level A1",
-    index: "2",
-    imageSrc: chapterImg.src,
-  },
-];
+type LevelOption = {
+  label: string;
+  value: string;
+};
 
 const ChaptersContainer = () => {
-  const [chapters, setChapters] = useState(initialChapters);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLevel, setSelectedLevel] = useState("all");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingChapter, setEditingChapter] = useState<ChapterItem | null>(null);
+  const [editingChapter, setEditingChapter] = useState<ChapterApiItem | null>(
+    null,
+  );
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useGetChaptersQuery(selectedLevel);
+  const { data: levelsData } = useGetLevelsQuery(undefined);
+  const [createChapter, { isLoading: isCreating }] = useCreateChapterMutation();
+  const [updateChapter, { isLoading: isUpdating }] = useUpdateChapterMutation();
+  const [deleteChapter] = useDeleteChapterMutation();
+  const chapters: ChapterApiItem[] = data?.data || [];
+  const levelOptions: LevelOption[] = (levelsData?.data || []).map((level: any) => ({
+    label: `${level.name}`,
+    value: level.id,
+  }));
 
   const filteredChapters = useMemo(() => {
     return chapters.filter((chapter) => {
       const matchesSearch = chapter.name
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
-      const matchesLevel =
-        selectedLevel === "all" || chapter.level === selectedLevel;
 
-      return matchesSearch && matchesLevel;
+      return matchesSearch;
     });
-  }, [chapters, searchTerm, selectedLevel]);
+  }, [chapters, searchTerm]);
 
-  const handleCreateChapter = (values: ChapterFormValues) => {
-    setChapters((prev) => [
-      {
-        id: crypto.randomUUID(),
-        ...values,
-      },
-      ...prev,
-    ]);
-    toast.success("Chapter created successfully");
+  const handleCreateChapter = async (values: ChapterFormValues) => {
+    await handleMutation(values, createChapter, "Creating chapter...", () => {
+      setIsCreateOpen(false);
+    });
   };
 
-  const handleEditChapter = (values: ChapterFormValues) => {
+  const handleEditChapter = async (values: ChapterFormValues) => {
     if (!editingChapter) return;
 
-    setChapters((prev) =>
-      prev.map((chapter) =>
-        chapter.id === editingChapter.id ? { ...chapter, ...values } : chapter,
-      ),
+    await handleMutation(
+      { id: editingChapter.id, data: values },
+      updateChapter,
+      "Updating chapter...",
+      () => {
+        setEditingChapter(null);
+      },
     );
-    toast.success("Chapter updated successfully");
-    setEditingChapter(null);
   };
 
-  const handleDeleteChapter = (chapter: ChapterItem) => {
-    setChapters((prev) => prev.filter((item) => item.id !== chapter.id));
-    toast.success(`${chapter.name} deleted successfully`);
+  const handleDeleteChapter = async (chapter: ChapterItem) => {
+    await handleMutation(chapter.id, deleteChapter, "Deleting chapter...");
+  };
+
+  const handleOpenEditChapter = (chapter: ChapterItem) => {
+    setEditingChapter(chapter as ChapterApiItem);
   };
 
   return (
@@ -104,8 +132,8 @@ const ChaptersContainer = () => {
               <SelectContent className="border-border bg-card text-white">
                 <SelectItem value="all">All levels</SelectItem>
                 {levelOptions.map((level) => (
-                  <SelectItem key={level} value={level}>
-                    {level}
+                  <SelectItem key={level.value} value={level.value}>
+                    {level.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -121,13 +149,17 @@ const ChaptersContainer = () => {
           </div>
         </div>
 
-        {filteredChapters.length ? (
+        {isLoading ? (
+          <ASpinner size={120} className="min-h-[320px]" />
+        ) : isError ? (
+          <AErrorMessage error={error} onRetry={refetch} className="min-h-[320px]" />
+        ) : filteredChapters.length ? (
           <div className="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {filteredChapters.map((chapter) => (
               <ChapterCard
                 key={chapter.id}
                 chapter={chapter}
-                onEdit={setEditingChapter}
+                onEdit={handleOpenEditChapter}
                 onDelete={handleDeleteChapter}
               />
             ))}
@@ -152,13 +184,12 @@ const ChaptersContainer = () => {
         onSubmit={handleCreateChapter}
         defaultValues={{
           name: "",
-          level: "",
-          index: "1",
-          imageSrc: "",
+          levelId: "",
+          index: 1,
         }}
         title="Add New Chapter"
         description="Add new chapter within a specific level"
-        submitLabel="Submit"
+        submitLabel={isCreating ? "Submitting..." : "Submit"}
         levelOptions={levelOptions}
       />
 
@@ -171,13 +202,12 @@ const ChaptersContainer = () => {
         onSubmit={handleEditChapter}
         defaultValues={{
           name: editingChapter?.name ?? "",
-          level: editingChapter?.level ?? "",
-          index: editingChapter?.index ?? "1",
-          imageSrc: editingChapter?.imageSrc ?? "",
+          levelId: editingChapter?.levelId ?? "",
+          index: editingChapter?.index ?? 1,
         }}
         title="Update Chapter"
         description="Update the chapter details within a specific level"
-        submitLabel="Update"
+        submitLabel={isUpdating ? "Updating..." : "Update"}
         levelOptions={levelOptions}
       />
     </>

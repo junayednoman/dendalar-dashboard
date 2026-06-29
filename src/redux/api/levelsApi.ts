@@ -7,9 +7,37 @@ const levelsApi = baseApi.injectEndpoints({
         url: "/levels",
         method: "GET",
       }),
-      providesTags: ["meta"],
+      providesTags: ["levels"],
+    }),
+    createLevel: builder.mutation({
+      query: (data) => ({
+        url: "/levels",
+        method: "POST",
+        body: data,
+      }),
+      invalidatesTags: ["levels"],
+    }),
+    updateLevel: builder.mutation({
+      query: ({ id, data }) => ({
+        url: `/levels/${id}`,
+        method: "PATCH",
+        body: data,
+      }),
+      invalidatesTags: ["levels"],
+    }),
+    deleteLevel: builder.mutation({
+      query: (id) => ({
+        url: `/levels/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["levels"],
     }),
   }),
 });
 
-export const { useGetLevelsQuery } = levelsApi;
+export const {
+  useGetLevelsQuery,
+  useCreateLevelMutation,
+  useUpdateLevelMutation,
+  useDeleteLevelMutation,
+} = levelsApi;

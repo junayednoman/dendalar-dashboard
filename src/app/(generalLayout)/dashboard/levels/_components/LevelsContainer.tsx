@@ -7,8 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Plus } from "lucide-react";
 import { toast } from "sonner";
+import handleMutation from "@/utils/handleMutation";
 import LevelCard, { LevelItem } from "./LevelCard";
-import { useGetLevelsQuery } from "@/redux/api/levelsApi";
+import LevelFormModal from "./LevelFormModal";
+import {
+  useCreateLevelMutation,
+  useDeleteLevelMutation,
+  useGetLevelsQuery,
+  useUpdateLevelMutation,
+} from "@/redux/api/levelsApi";
+import { LevelFormValues } from "@/validations/levels.validation";
 
 type LevelApiItem = {
   id: string;
@@ -16,15 +24,17 @@ type LevelApiItem = {
   index: number;
   createdAt: string;
   updatedAt: string;
-  isCompleted: boolean;
-  isLocked: boolean;
 };
 
 const LevelsContainer = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const { data, isLoading, isError, error, refetch } = useGetLevelsQuery(
-    undefined,
-  );
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingLevel, setEditingLevel] = useState<LevelApiItem | null>(null);
+  const { data, isLoading, isError, error, refetch } =
+    useGetLevelsQuery(undefined);
+  const [createLevel, { isLoading: isCreating }] = useCreateLevelMutation();
+  const [updateLevel, { isLoading: isUpdating }] = useUpdateLevelMutation();
+  const [deleteLevelMutation] = useDeleteLevelMutation();
   const levels: LevelApiItem[] = data?.data || [];
 
   const filteredLevels = useMemo(() => {
@@ -33,16 +43,31 @@ const LevelsContainer = () => {
     });
   }, [levels, searchTerm]);
 
-  const handleCreateLevel = () => {
-    toast.info("Create level API is not connected yet.");
+  const handleCreateLevel = async (values: LevelFormValues) => {
+    await handleMutation(values, createLevel, "Creating level...", () => {
+      setIsCreateOpen(false);
+    });
   };
 
-  const handleEditLevel = () => {
-    toast.info("Edit level API is not connected yet.");
+  const handleEditLevel = async (values: LevelFormValues) => {
+    if (!editingLevel) return;
+
+    await handleMutation(
+      { id: editingLevel.id, data: values },
+      updateLevel,
+      "Updating level...",
+      () => {
+        setEditingLevel(null);
+      },
+    );
   };
 
-  const handleDeleteLevel = (level: LevelItem) => {
-    toast.info(`Delete API for ${level.name} is not connected yet.`);
+  const handleOpenEditLevel = (level: LevelItem) => {
+    setEditingLevel(level as LevelApiItem);
+  };
+
+  const handleDeleteLevel = async (level: LevelItem) => {
+    await handleMutation(level.id, deleteLevelMutation, "Deleting level...");
   };
 
   return (
@@ -59,7 +84,10 @@ const LevelsContainer = () => {
         </div>
 
         <div className="flex flex-col gap-4 sm:flex-row">
-          <Button onClick={handleCreateLevel} className="h-11 rounded-xl px-5 text-sm">
+          <Button
+            onClick={() => setIsCreateOpen(true)}
+            className="h-11 rounded-xl px-5 text-sm"
+          >
             Add new level
             <Plus className="size-4" />
           </Button>
@@ -69,14 +97,18 @@ const LevelsContainer = () => {
       {isLoading ? (
         <ASpinner size={120} className="min-h-[320px]" />
       ) : isError ? (
-        <AErrorMessage error={error} onRetry={refetch} className="min-h-[320px]" />
+        <AErrorMessage
+          error={error}
+          onRetry={refetch}
+          className="min-h-[320px]"
+        />
       ) : filteredLevels.length ? (
         <div className="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
           {filteredLevels.map((level: LevelApiItem) => (
             <LevelCard
               key={level.id}
               level={level}
-              onEdit={handleEditLevel}
+              onEdit={handleOpenEditLevel}
               onDelete={handleDeleteLevel}
             />
           ))}
@@ -87,12 +119,36 @@ const LevelsContainer = () => {
             <h3 className="text-2xl font-semibold text-white">
               No levels found
             </h3>
-            <p className="text-card-foreground">
-              Try another search.
-            </p>
+            <p className="text-card-foreground">Try another search.</p>
           </div>
         </div>
       )}
+
+      <LevelFormModal
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        onSubmit={handleCreateLevel}
+        defaultValues={{ name: "", index: 0 }}
+        title="Add New Level"
+        description="Add a new level with its name and order"
+        submitLabel={isCreating ? "Submitting..." : "Submit"}
+      />
+
+      <LevelFormModal
+        open={!!editingLevel}
+        onOpenChange={(open) => {
+          if (!open) setEditingLevel(null);
+        }}
+        onSubmit={handleEditLevel}
+        defaultValues={
+          editingLevel
+            ? { name: editingLevel.name, index: editingLevel.index }
+            : undefined
+        }
+        title="Edit Level"
+        description="Update the level name and order"
+        submitLabel={isUpdating ? "Updating..." : "Update"}
+      />
     </div>
   );
 };
