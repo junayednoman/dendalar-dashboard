@@ -7,23 +7,16 @@ import EditProfileForm from "./EditProfileForm";
 import ChangePasswordForm from "./ChangePasswordForm";
 import ASpinner from "@/components/ui/ASpinner";
 import AErrorMessage from "@/components/AErrorMessage";
+import { useGetProfileQuery } from "@/redux/api/profileApi";
+import { useAppSelector } from "@/redux/hooks/hooks";
 
 const ProfileContainer = () => {
   const [activeTab, setActiveTab] = useState("edit-profile");
-
-  // Dummy data for profile (replace with your actual profile data)
-  const profile = {
-    name: "John Doe",
-    email: "johndoe@example.com",
-    address: "123 Main St, Springfield",
-    photoUrl: "/placeholder.svg?height=120&width=120", // replace with your default avatar URL
-  };
-
-  // Simulate loading and error states
-  const isLoading = false;
-  const isError = false;
-  const error = null;
-  const refetch = () => {};
+  const { user } = useAppSelector((state) => state.auth);
+  const { data, isLoading, isError, error, refetch } = useGetProfileQuery(
+    undefined,
+  );
+  const profile = data?.data;
 
   if (isLoading) return <ASpinner size={150} className="py-56" />;
   if (isError)
@@ -34,8 +27,8 @@ const ProfileContainer = () => {
       <div className="max-w-2xl mx-auto space-y-8">
         <ProfileHeader
           name={profile?.name || ""}
-          role={"Admin"}
-          avatar={profile?.photoUrl || "/placeholder.svg?height=120&width=120"}
+          role={user?.role || "ADMIN"}
+          avatar={profile?.image || "/placeholder.svg?height=120&width=120"}
         />
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -59,8 +52,7 @@ const ProfileContainer = () => {
               <EditProfileForm
                 defaultValues={{
                   name: profile?.name || "",
-                  email: profile?.email || "",
-                  address: profile?.address || "",
+                  email: user?.email || "",
                 }}
               />
             </TabsContent>

@@ -184,6 +184,60 @@ div[data-input-otp-container="true"] {
   min-height: 100% !important;
 }
 
+.jodit-shell .jodit-container {
+  border: 0 !important;
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+  font-family: var(--font-sans) !important;
+}
+
+.jodit-shell .jodit-workplace {
+  min-height: 600px !important;
+  background: var(--background) !important;
+}
+
+.jodit-shell .jodit-wysiwyg,
+.jodit-shell .jodit-source {
+  min-height: 520px !important;
+  background: var(--background) !important;
+  color: var(--foreground) !important;
+  padding: 16px !important;
+}
+
+.jodit-shell .jodit-toolbar__box,
+.jodit-shell .jodit-status-bar {
+  background: var(--card) !important;
+  border-color: var(--border) !important;
+  color: var(--foreground) !important;
+}
+
+.jodit-shell .jodit-toolbar-button,
+.jodit-shell .jodit-status-bar a,
+.jodit-shell .jodit-status-bar span {
+  color: var(--foreground) !important;
+}
+
+.jodit-shell .jodit-toolbar-button:hover,
+.jodit-shell .jodit-toolbar-button.jodit-toolbar-button_hover,
+.jodit-shell .jodit-toolbar-button[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--primary) 18%, transparent) !important;
+}
+
+.jodit-shell .jodit-ui-group,
+.jodit-shell .jodit-toolbar-editor-collection {
+  border-color: var(--border) !important;
+}
+
+.jodit-shell .jodit-popup,
+.jodit-shell .jodit-dialog,
+.jodit-shell .jodit-ui-input,
+.jodit-shell .jodit-ui-select,
+.jodit-shell .jodit-ui-text-area {
+  background: var(--card) !important;
+  color: var(--foreground) !important;
+  border-color: var(--border) !important;
+}
+
 /* tab styles */
 .complaintTab button[data-state="active"] {
   color: var(--primary);

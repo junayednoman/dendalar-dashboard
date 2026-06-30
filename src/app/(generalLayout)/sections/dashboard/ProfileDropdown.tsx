@@ -18,7 +18,7 @@ import { logOut } from "@/redux/slice/authSlice";
 import handleMutation from "@/utils/handleMutation";
 
 const ProfileDropdown = () => {
-  const { data } = useGetProfileQuery("");
+  const { data } = useGetProfileQuery(undefined);
   const profile = data?.data;
 
   const pathname = usePathname();
@@ -39,7 +39,7 @@ const ProfileDropdown = () => {
       <DropdownMenuTrigger>
         <button className="">
           <Image
-            src={profile?.photoUrl || avatarImg}
+            src={profile?.image || avatarImg}
             alt="logo"
             width={40}
             height={40}

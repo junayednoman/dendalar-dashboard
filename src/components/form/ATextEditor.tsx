@@ -2,42 +2,32 @@
 
 import { useEffect, useMemo, useRef } from "react";
 
-interface JoditTextEditorProps {
+interface ATextEditorProps {
   content: string;
   onChange: (content: string) => void;
   placeholder?: string;
 }
 
-type JoditModule = {
-  Jodit: {
-    make: (
-      element: HTMLElement,
-      config: Record<string, unknown>,
-    ) => {
-      value: string;
-      events: {
-        on: (event: string, cb: (...args: unknown[]) => void) => void;
-        off: (event: string, cb: (...args: unknown[]) => void) => void;
-      };
-      destruct: () => void;
-    };
-  };
+const JODIT_STYLESHEET_ID = "jodit-editor-stylesheet";
+
+const ensureString = (value: unknown) => {
+  if (typeof value === "string") return value;
+  if (value == null) return "";
+
+  return String(value);
 };
 
-const JoditTextEditor = ({
+const ATextEditor = ({
   content,
   onChange,
   placeholder = "Start writing...",
-}: JoditTextEditorProps) => {
-  const textAreaRef = useRef<HTMLTextAreaElement | null>(null);
-  const editorRef = useRef<{
-    value: string;
-    events: {
-      on: (event: string, cb: (...args: unknown[]) => void) => void;
-      off: (event: string, cb: (...args: unknown[]) => void) => void;
-    };
-    destruct: () => void;
-  } | null>(null);
+}: ATextEditorProps) => {
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const editorRef = useRef<any>(null);
+  const onChangeRef = useRef(onChange);
+
+  onChangeRef.current = onChange;
+  const normalizedContent = ensureString(content);
 
   const config = useMemo(
     () => ({
@@ -45,11 +35,7 @@ const JoditTextEditor = ({
       placeholder,
       height: 600,
       theme: "dark",
-      style: {
-        backgroundColor: "var(--background)",
-        color: "var(--foreground)",
-      },
-      toolbarButtonSize: "small",
+      toolbarButtonSize: "small" as const,
       buttons: [
         "bold",
         "italic",
@@ -75,10 +61,8 @@ const JoditTextEditor = ({
         "hr",
         "copyformat",
         "fullsize",
-        "print",
-        "about",
       ],
-      removeButtons: ["source"],
+      removeButtons: ["source", "about", "print"],
       showCharsCounter: true,
       showWordsCounter: true,
       showXPathInStatusbar: false,
@@ -88,77 +72,89 @@ const JoditTextEditor = ({
       beautyHTML: true,
       toolbarAdaptive: true,
       toolbarSticky: false,
+      style: {
+        backgroundColor: "var(--background)",
+        color: "var(--foreground)",
+      },
       uploader: {
         insertImageAsBase64URI: true,
-      },
-      controls: {
-        font: {
-          list: {
-            "": "Default",
-            "'Helvetica Neue', Helvetica, Arial, sans-serif": "Helvetica",
-            "Arial, sans-serif": "Arial",
-            "'Times New Roman', Times, serif": "Times New Roman",
-            "Georgia, serif": "Georgia",
-            "'Courier New', Courier, monospace": "Courier New",
-          },
-        },
       },
     }),
     [placeholder],
   );
 
   useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const existingStylesheet = document.getElementById(JODIT_STYLESHEET_ID);
+
+    if (existingStylesheet) return;
+
+    const link = document.createElement("link");
+    link.id = JODIT_STYLESHEET_ID;
+    link.rel = "stylesheet";
+    link.href = "/vendor/jodit.css";
+    document.head.appendChild(link);
+  }, []);
+
+  useEffect(() => {
     let isMounted = true;
 
-    const setup = async () => {
-      if (!textAreaRef.current) return;
+    const initializeEditor = async () => {
+      const [{ Jodit }] = await Promise.all([
+        import("jodit/esm/index.js"),
+        import("jodit/esm/plugins/all.js"),
+      ]);
 
-      const mod = (await import("jodit/esm/index.js")) as JoditModule;
-      if (!isMounted || !textAreaRef.current) return;
+      if (!isMounted || !textareaRef.current) return;
 
-      const editor = mod.Jodit.make(textAreaRef.current, config);
+      const editor = Jodit.make(textareaRef.current, config as any);
       editorRef.current = editor;
-      editor.value = content;
+      editor.value = normalizedContent;
 
-      const handleBlur = (nextValue: unknown) => {
-        onChange(typeof nextValue === "string" ? nextValue : editor.value);
-      };
+      editor.events.on("change", (updatedContent: string) => {
+        onChangeRef.current(ensureString(updatedContent));
+      });
 
-      editor.events.on("blur", handleBlur);
-
-      const cleanup = () => {
-        editor.events.off("blur", handleBlur);
-      };
-
-      (editor as unknown as { __cleanup?: () => void }).__cleanup = cleanup;
+      editor.events.on("blur", () => {
+        onChangeRef.current(ensureString(editor.value));
+      });
     };
 
-    setup();
+    initializeEditor();
 
     return () => {
       isMounted = false;
-      const editor = editorRef.current as
-        | (typeof editorRef.current & {
-            __cleanup?: () => void;
-          })
-        | null;
-      editor?.__cleanup?.();
-      editor?.destruct();
+
+      if (!editorRef.current) return;
+
+      if (editorRef.current.isReady) {
+        editorRef.current.destruct();
+      } else {
+        editorRef.current
+          .waitForReady()
+          .then((instance: any) => instance.destruct());
+      }
+
       editorRef.current = null;
     };
-  }, [config, onChange, content]);
+  }, [config, normalizedContent]);
 
   useEffect(() => {
-    if (editorRef.current && editorRef.current.value !== content) {
-      editorRef.current.value = content;
+    const editor = editorRef.current;
+
+    if (!editor) return;
+
+    if (editor.value !== normalizedContent) {
+      editor.value = normalizedContent;
     }
-  }, [content]);
+  }, [normalizedContent]);
 
   return (
-    <div className="h-fit">
-      <textarea ref={textAreaRef} defaultValue={content} />
+    <div className="jodit-shell h-fit overflow-hidden rounded-3xl border border-border bg-background">
+      <textarea ref={textareaRef} defaultValue={normalizedContent} />
     </div>
   );
 };
 
-export default JoditTextEditor;
+export default ATextEditor;

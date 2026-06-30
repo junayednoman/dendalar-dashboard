@@ -9,7 +9,6 @@ export const editProfileSchema = z.object({
     .string()
     .min(1, "Email is required")
     .email("Please enter a valid email address"),
-  address: z.string(),
 });
 
 export type EditProfileFormValues = z.infer<typeof editProfileSchema>;

@@ -40,14 +40,15 @@ const ProfileHeader = ({ name, role, avatar }: ProfileHeaderProps) => {
     }
 
     const formData = new FormData();
+    formData.append(
+      "payload",
+      JSON.stringify({
+        name,
+      }),
+    );
     formData.append("image", file);
 
-    // Log FormData entries for debugging
-    console.log("FormData Entries:", [...formData.entries()]);
-
-    const onSuccess = () => {
-      // No redirect needed; stay on profile page
-    };
+    const onSuccess = () => {};
 
     handleMutation(formData, updateProfile, "Uploading image...", onSuccess);
   };

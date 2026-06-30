@@ -78,6 +78,8 @@ export const baseApi = createApi({
     "levels",
     "chapters",
     "lessons",
+    "questions",
+    "legal",
   ],
   endpoints: () => ({}),
 });

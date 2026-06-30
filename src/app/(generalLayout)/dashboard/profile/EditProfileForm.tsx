@@ -9,7 +9,6 @@ import {
 } from "@/validations/profile.validation";
 import handleMutation from "@/utils/handleMutation";
 import { useUpdateProfileMutation } from "@/redux/api/profileApi";
-import { toast } from "sonner";
 
 interface EditProfileFormProps {
   defaultValues?: Partial<EditProfileFormValues>;
@@ -19,8 +18,15 @@ const EditProfileForm = ({ defaultValues }: EditProfileFormProps) => {
   const [updateProfile, { isLoading }] = useUpdateProfileMutation();
 
   const handleEditProfile = (data: EditProfileFormValues) => {
-    return toast.success("Profile updated successfully");
-    handleMutation(data, updateProfile, "Updating profile...");
+    const formData = new FormData();
+    formData.append(
+      "payload",
+      JSON.stringify({
+        name: data.name,
+      }),
+    );
+
+    handleMutation(formData, updateProfile, "Updating profile...");
   };
 
   return (
@@ -46,12 +52,6 @@ const EditProfileForm = ({ defaultValues }: EditProfileFormProps) => {
           type="email"
           disabled
           placeholder="Enter your email"
-          required
-        />
-        <AInput
-          name="address"
-          label="Address"
-          placeholder="Enter your address"
           required
         />
         <Button disabled={isLoading} type="submit" className="w-full h-[50px]">

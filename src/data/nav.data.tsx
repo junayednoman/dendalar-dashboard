@@ -5,6 +5,7 @@ import {
   Layers3,
   Settings,
   UserRoundCog,
+  CircleHelp,
 } from "lucide-react";
 
 type TNavMain = {
@@ -33,6 +34,11 @@ export const navItems: TNavMain = [
     title: "Lessons",
     url: "/dashboard/lessons",
     icon: <NotebookPen />,
+  },
+  {
+    title: "Questions",
+    url: "/dashboard/questions",
+    icon: <CircleHelp />,
   },
   {
     title: "Notifications",
