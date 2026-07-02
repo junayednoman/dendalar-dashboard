@@ -1,6 +1,5 @@
 "use client";
 
-import levelImg from "@/assets/level.svg";
 import { AAlertDialog } from "@/components/modal/AAlertDialog";
 import {
   DropdownMenu,
@@ -10,12 +9,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Edit3, MoreHorizontal, Trash2 } from "lucide-react";
-import Image from "next/image";
 
 export interface LevelItem {
   id: string;
   name: string;
   index?: number;
+  image?: string;
 }
 
 interface LevelCardProps {
@@ -27,7 +26,7 @@ interface LevelCardProps {
 const LevelCard = ({ level, onEdit, onDelete }: LevelCardProps) => {
   return (
     <div className="space-y-3">
-      <div className="relative overflow-hidden rounded-3xl border border-border bg-background px-5 py-12">
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-background px-5 py-6">
         <div className="absolute top-4 right-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -70,13 +69,11 @@ const LevelCard = ({ level, onEdit, onDelete }: LevelCardProps) => {
           </DropdownMenu>
         </div>
 
-        <div className="flex items-center justify-center rounded-[18px] bg-black/20">
-          <Image
-            src={levelImg}
+        <div className="flex min-h-[260px] items-center justify-center rounded-[18px] bg-black/20 p-4">
+          <img
+            src={level.image || "/window.svg"}
             alt={level.name}
-            width={120}
-            height={120}
-            className="object-contain"
+            className="max-h-[220px] w-full rounded-xl object-contain"
           />
         </div>
       </div>
@@ -85,6 +82,7 @@ const LevelCard = ({ level, onEdit, onDelete }: LevelCardProps) => {
         <h3 className="text-[24px] leading-none font-semibold text-white">
           {level.name}
         </h3>
+        <p className="mt-2 text-sm text-muted-foreground">Index {level.index}</p>
       </div>
     </div>
   );

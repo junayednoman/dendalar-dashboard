@@ -22,6 +22,7 @@ type LevelApiItem = {
   id: string;
   name: string;
   index: number;
+  image?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -43,17 +44,48 @@ const LevelsContainer = () => {
     });
   }, [levels, searchTerm]);
 
-  const handleCreateLevel = async (values: LevelFormValues) => {
-    await handleMutation(values, createLevel, "Creating level...", () => {
-      setIsCreateOpen(false);
-    });
+  const buildLevelFormData = (
+    values: LevelFormValues,
+    imageFile?: File | null,
+  ) => {
+    const formData = new FormData();
+    formData.append(
+      "payload",
+      JSON.stringify({
+        name: values.name,
+        index: values.index,
+      }),
+    );
+
+    if (imageFile) {
+      formData.append("image", imageFile);
+    }
+
+    return formData;
   };
 
-  const handleEditLevel = async (values: LevelFormValues) => {
+  const handleCreateLevel = async (
+    values: LevelFormValues,
+    imageFile?: File | null,
+  ) => {
+    await handleMutation(
+      buildLevelFormData(values, imageFile),
+      createLevel,
+      "Creating level...",
+      () => {
+      setIsCreateOpen(false);
+      },
+    );
+  };
+
+  const handleEditLevel = async (
+    values: LevelFormValues,
+    imageFile?: File | null,
+  ) => {
     if (!editingLevel) return;
 
     await handleMutation(
-      { id: editingLevel.id, data: values },
+      { id: editingLevel.id, data: buildLevelFormData(values, imageFile) },
       updateLevel,
       "Updating level...",
       () => {
@@ -129,6 +161,7 @@ const LevelsContainer = () => {
         onOpenChange={setIsCreateOpen}
         onSubmit={handleCreateLevel}
         defaultValues={{ name: "", index: 0 }}
+        imageUrl=""
         title="Add New Level"
         description="Add a new level with its name and order"
         submitLabel={isCreating ? "Submitting..." : "Submit"}
@@ -145,6 +178,7 @@ const LevelsContainer = () => {
             ? { name: editingLevel.name, index: editingLevel.index }
             : undefined
         }
+        imageUrl={editingLevel?.image ?? ""}
         title="Edit Level"
         description="Update the level name and order"
         submitLabel={isUpdating ? "Updating..." : "Update"}

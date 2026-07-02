@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AErrorMessage from "@/components/AErrorMessage";
 import handleMutation from "@/utils/handleMutation";
 import { Button } from "@/components/ui/button";
@@ -51,7 +51,7 @@ type LevelOption = {
 
 const ChaptersContainer = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedLevel, setSelectedLevel] = useState("all");
+  const [selectedLevel, setSelectedLevel] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingChapter, setEditingChapter] = useState<ChapterApiItem | null>(
     null,
@@ -72,6 +72,12 @@ const ChaptersContainer = () => {
     label: `${level.name}`,
     value: level.id,
   }));
+
+  useEffect(() => {
+    if (!selectedLevel && levelOptions.length) {
+      setSelectedLevel(levelOptions[0].value);
+    }
+  }, [levelOptions, selectedLevel]);
 
   const filteredChapters = useMemo(() => {
     return chapters.filter((chapter) => {
@@ -130,7 +136,6 @@ const ChaptersContainer = () => {
                 <SelectValue placeholder="Level" />
               </SelectTrigger>
               <SelectContent className="border-border bg-card text-white">
-                <SelectItem value="all">All levels</SelectItem>
                 {levelOptions.map((level) => (
                   <SelectItem key={level.value} value={level.value}>
                     {level.label}
@@ -184,7 +189,7 @@ const ChaptersContainer = () => {
         onSubmit={handleCreateChapter}
         defaultValues={{
           name: "",
-          levelId: "",
+          levelId: selectedLevel,
           index: 1,
         }}
         title="Add New Chapter"

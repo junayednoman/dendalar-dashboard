@@ -12,6 +12,7 @@ type LevelApiItem = {
   id: string;
   name: string;
   index: number;
+  image?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -68,11 +69,18 @@ const LevelsPreviewPanel = () => {
               href="/dashboard/levels"
               className="flex items-center justify-between rounded-lg border border-border p-4 transition-colors hover:bg-background/40"
             >
-              <div>
-                <h3 className="font-medium text-white">{level.name}</h3>
-                <p className="text-sm text-muted-foreground">
-                  Level {level.index}
-                </p>
+              <div className="flex items-center gap-3">
+                <img
+                  src={level.image || "/window.svg"}
+                  alt={level.name}
+                  className="h-12 w-12 rounded-xl object-cover"
+                />
+                <div>
+                  <h3 className="font-medium text-white">{level.name}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Level {level.index}
+                  </p>
+                </div>
               </div>
             </Link>
           ))}

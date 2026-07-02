@@ -14,18 +14,16 @@ import {
 type UserDetailsModalProps = {
   children: ReactNode;
   user: {
+    id: string;
     name: string;
+    email: string;
     role: string;
     avatar: string;
+    joinedAt: string;
   };
-  bio: string;
 };
 
-export function UserDetailsModal({
-  children,
-  user,
-  bio,
-}: UserDetailsModalProps) {
+export function UserDetailsModal({ children, user }: UserDetailsModalProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -50,8 +48,41 @@ export function UserDetailsModal({
             </div>
           </div>
           <DialogDescription asChild>
-            <div className="mt-6">
-              <p className="text-lg leading-relaxed text-[#949494]">{bio}</p>
+            <div className="mt-6 space-y-4">
+              <div className="grid gap-3 rounded-2xl border border-[#DEDEDE] bg-white p-5 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-[#8D8D8D]">Full Name</p>
+                  <p className="text-base font-semibold text-[#2C2C2C]">
+                    {user.name}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-[#8D8D8D]">Role</p>
+                  <p className="text-base font-semibold text-[#2C2C2C]">
+                    {user.role}
+                  </p>
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <p className="text-sm font-medium text-[#8D8D8D]">
+                    Email Address
+                  </p>
+                  <p className="break-all text-base font-semibold text-[#2C2C2C]">
+                    {user.email}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-[#8D8D8D]">User ID</p>
+                  <p className="break-all text-base font-semibold text-[#2C2C2C]">
+                    {user.id}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-[#8D8D8D]">Joined On</p>
+                  <p className="text-base font-semibold text-[#2C2C2C]">
+                    {user.joinedAt}
+                  </p>
+                </div>
+              </div>
             </div>
           </DialogDescription>
         </DialogHeader>

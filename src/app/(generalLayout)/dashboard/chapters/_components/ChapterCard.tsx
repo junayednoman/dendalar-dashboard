@@ -31,7 +31,7 @@ interface ChapterCardProps {
 const ChapterCard = ({ chapter, onEdit, onDelete }: ChapterCardProps) => {
   return (
     <div className="space-y-3">
-      <div className="relative aspect-square overflow-hidden rounded-3xl border border-border bg-background px-5 py-5">
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-background p-5">
         <div className="absolute top-4 right-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -76,24 +76,14 @@ const ChapterCard = ({ chapter, onEdit, onDelete }: ChapterCardProps) => {
           </DropdownMenu>
         </div>
 
-        <div className="flex h-full items-center justify-center rounded-[18px] bg-black/20">
-          <img
-            src="/window.svg"
-            alt={chapter.name}
-            className="h-[120px] w-[120px] object-contain"
-          />
+        <div className="rounded-[18px] bg-black/20 p-5 pr-14">
+          <h3 className="text-[24px] leading-none font-semibold text-white">
+            {chapter.name}
+          </h3>
+          <p className="mt-3 text-sm text-muted-foreground">
+            Index {chapter.index}
+          </p>
         </div>
-      </div>
-
-      <div className="text-center">
-        <h3 className="text-[20px] leading-none font-semibold text-white">
-          {chapter.name}
-        </h3>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {chapter.level?.name
-            ? `Level ${chapter.level.name}`
-            : `Index ${chapter.index}`}
-        </p>
       </div>
     </div>
   );
