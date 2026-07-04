@@ -8,14 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  BookText,
-  Edit3,
-  MessageCircleMore,
-  MoreHorizontal,
-  RotateCcw,
-  Trash2,
-} from "lucide-react";
+import { Edit3, MoreHorizontal, Trash2 } from "lucide-react";
 
 export interface LessonItem {
   id: string;
@@ -36,17 +29,10 @@ interface LessonCardProps {
   onDelete: (lesson: LessonItem) => void;
 }
 
-const lessonIconMap = {
-  SENTENCE: BookText,
-  DIALOGUE: MessageCircleMore,
-} as const;
-
 const LessonCard = ({ lesson, onEdit, onDelete }: LessonCardProps) => {
-  const Icon = lessonIconMap[lesson.lessonType as keyof typeof lessonIconMap];
-
   return (
     <div className="space-y-3">
-      <div className="relative aspect-square overflow-hidden rounded-3xl border border-border bg-background px-5 py-5">
+      <div className="relative overflow-hidden rounded-3xl border border-border bg-background p-5">
         <div className="absolute top-4 right-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -91,22 +77,14 @@ const LessonCard = ({ lesson, onEdit, onDelete }: LessonCardProps) => {
           </DropdownMenu>
         </div>
 
-        <div className="flex h-full items-center justify-center rounded-[18px] bg-black/20">
-          {Icon ? (
-            <Icon className="size-16 text-white" strokeWidth={1.75} />
-          ) : null}
+        <div className="rounded-[18px] bg-black/20 p-5 pr-14">
+          <h3 className="text-[24px] leading-none font-semibold text-white">
+            {lesson.chapter?.name || `Lesson ${lesson.index}`}
+          </h3>
+          <p className="mt-3 text-sm text-muted-foreground">
+            {lesson.lessonType} | Index {lesson.index}
+          </p>
         </div>
-      </div>
-
-      <div className="text-center">
-        <h3 className="text-[20px] leading-none font-semibold text-white">
-          {lesson.lessonType}
-        </h3>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {lesson.chapter?.name
-            ? `${lesson.chapter.name} • Lesson ${lesson.index}`
-            : `Lesson ${lesson.index}`}
-        </p>
       </div>
     </div>
   );

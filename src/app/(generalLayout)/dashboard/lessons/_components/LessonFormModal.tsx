@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,9 +17,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { useGetChaptersQuery } from "@/redux/api/chaptersApi";
 import { toast } from "sonner";
 
 export interface LessonFormValues {
+  levelId?: string;
   lessonType: string;
   chapterId: string;
   index: number;
@@ -33,11 +35,12 @@ interface LessonFormModalProps {
   title: string;
   description: string;
   submitLabel: string;
+  levelOptions: { label: string; value: string }[];
   lessonTypeOptions: string[];
-  chapterOptions: { label: string; value: string; levelLabel?: string }[];
 }
 
 const emptyValues: LessonFormValues = {
+  levelId: "",
   lessonType: "",
   chapterId: "",
   index: 1,
@@ -51,10 +54,19 @@ const LessonFormModal = ({
   title,
   description,
   submitLabel,
+  levelOptions,
   lessonTypeOptions,
-  chapterOptions,
 }: LessonFormModalProps) => {
   const [values, setValues] = useState<LessonFormValues>(emptyValues);
+  const { data: chaptersData } = useGetChaptersQuery(values.levelId);
+  const filteredChapterOptions = useMemo(
+    () =>
+      (chaptersData?.data || []).map((chapter: any) => ({
+        label: chapter.name,
+        value: chapter.id,
+      })),
+    [chaptersData],
+  );
 
   useEffect(() => {
     if (open) {
@@ -63,21 +75,56 @@ const LessonFormModal = ({
     }
   }, [defaultValues, open]);
 
+  useEffect(() => {
+    if (!values.levelId && levelOptions.length) {
+      setValues((prev) => ({
+        ...prev,
+        levelId: levelOptions[0].value,
+      }));
+    }
+  }, [levelOptions, values.levelId]);
+
+  useEffect(() => {
+    if (!values.levelId) return;
+
+    if (
+      filteredChapterOptions.length &&
+      !filteredChapterOptions.some(
+        (chapter: { label: string; value: string }) =>
+          chapter.value === values.chapterId,
+      )
+    ) {
+      setValues((prev) => ({
+        ...prev,
+        chapterId: filteredChapterOptions[0].value,
+      }));
+    }
+  }, [filteredChapterOptions, values.chapterId, values.levelId]);
+
   const handleFieldChange = (
     key: keyof LessonFormValues,
     value: LessonFormValues[keyof LessonFormValues],
   ) => {
-    setValues((prev) => ({ ...prev, [key]: value }));
+    setValues((prev) => ({
+      ...prev,
+      [key]: value,
+      ...(key === "levelId" ? { chapterId: "" } : {}),
+    }));
   };
 
   const handleSubmit = async () => {
-    if (!values.lessonType) {
-      toast.error("Lesson type is required");
+    if (!values.levelId) {
+      toast.error("Level is required");
       return;
     }
 
     if (!values.chapterId) {
       toast.error("Chapter name is required");
+      return;
+    }
+
+    if (!values.lessonType) {
+      toast.error("Lesson type is required");
       return;
     }
 
@@ -106,20 +153,18 @@ const LessonFormModal = ({
 
         <div className="mt-6 space-y-6">
           <div className="space-y-3">
-            <label className="text-sm font-medium text-white">Lesson Type</label>
+            <label className="text-sm font-medium text-white">Level</label>
             <Select
-              value={values.lessonType}
-              onValueChange={(value) =>
-                handleFieldChange("lessonType", value)
-              }
+              value={values.levelId}
+              onValueChange={(value) => handleFieldChange("levelId", value)}
             >
               <SelectTrigger className="h-12! w-full rounded-2xl border-border bg-transparent px-5 text-white">
-                <SelectValue placeholder="Lesson Type" />
+                <SelectValue placeholder="Level" />
               </SelectTrigger>
               <SelectContent className="border-border bg-card text-white">
-                {lessonTypeOptions.map((lessonType) => (
-                  <SelectItem key={lessonType} value={lessonType}>
-                    {lessonType}
+                {levelOptions.map((level) => (
+                  <SelectItem key={level.value} value={level.value}>
+                    {level.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -136,11 +181,9 @@ const LessonFormModal = ({
                 <SelectValue placeholder="Chapter name" />
               </SelectTrigger>
               <SelectContent className="border-border bg-card text-white">
-                {chapterOptions.map((chapter) => (
+                {filteredChapterOptions.map((chapter: { label: string; value: string }) => (
                   <SelectItem key={chapter.value} value={chapter.value}>
-                    {chapter.levelLabel
-                      ? `${chapter.label} (${chapter.levelLabel})`
-                      : chapter.label}
+                    {chapter.label}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -148,9 +191,26 @@ const LessonFormModal = ({
           </div>
 
           <div className="space-y-3">
-            <label className="text-sm font-medium text-white">
-              Lesson Index
-            </label>
+            <label className="text-sm font-medium text-white">Lesson Type</label>
+            <Select
+              value={values.lessonType}
+              onValueChange={(value) => handleFieldChange("lessonType", value)}
+            >
+              <SelectTrigger className="h-12! w-full rounded-2xl border-border bg-transparent px-5 text-white">
+                <SelectValue placeholder="Lesson Type" />
+              </SelectTrigger>
+              <SelectContent className="border-border bg-card text-white">
+                {lessonTypeOptions.map((lessonType) => (
+                  <SelectItem key={lessonType} value={lessonType}>
+                    {lessonType}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-white">Lesson Index</label>
             <Input
               type="number"
               value={values.index}
