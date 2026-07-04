@@ -1,5 +1,6 @@
 "use client";
 
+import { skipToken } from "@reduxjs/toolkit/query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -18,11 +19,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { useGetChaptersQuery } from "@/redux/api/chaptersApi";
+import { useGetLessonsQuery } from "@/redux/api/lessonsApi";
 
 export interface QuestionFormValues {
+  levelId?: string;
   chapterId: string;
   lessonId: string;
-  type: "DIALOGUE" | "SENTENCE";
   index: number;
   sentenceInEnglish?: string;
   sentenceInLearningLanguage?: string;
@@ -39,19 +42,18 @@ interface QuestionFormModalProps {
   title: string;
   description: string;
   submitLabel: string;
-  chapterOptions: { label: string; value: string }[];
-  lessonOptions: {
-    label: string;
-    value: string;
-    chapterId: string;
-    lessonType: string;
-  }[];
+  levelOptions: { label: string; value: string }[];
 }
 
+type FormOption = {
+  label: string;
+  value: string;
+};
+
 const emptyValues: QuestionFormValues = {
+  levelId: "",
   chapterId: "",
   lessonId: "",
-  type: "SENTENCE",
   index: 1,
   sentenceInEnglish: "",
   sentenceInLearningLanguage: "",
@@ -68,10 +70,32 @@ const QuestionFormModal = ({
   title,
   description,
   submitLabel,
-  chapterOptions,
-  lessonOptions,
+  levelOptions,
 }: QuestionFormModalProps) => {
   const [values, setValues] = useState<QuestionFormValues>(emptyValues);
+  const { data: chaptersData } = useGetChaptersQuery(values.levelId);
+  const chapters = chaptersData?.data || [];
+
+  const chapterOptions = useMemo(
+    () =>
+      chapters.map((chapter: any) => ({
+        label: chapter.name,
+        value: chapter.id,
+      })),
+    [chapters],
+  );
+
+  const { data: lessonsData } = useGetLessonsQuery(
+    values.chapterId ? values.chapterId : skipToken,
+  );
+  const chapterLessons = values.chapterId ? lessonsData?.data || [] : [];
+  const selectedLesson = chapterLessons.find(
+    (lesson: any) => lesson.id === values.lessonId,
+  );
+  const selectedLessonType = selectedLesson?.lessonType as
+    | "DIALOGUE"
+    | "SENTENCE"
+    | undefined;
 
   useEffect(() => {
     if (open) {
@@ -79,27 +103,88 @@ const QuestionFormModal = ({
     }
   }, [defaultValues, open]);
 
-  const filteredLessonOptions = useMemo(() => {
-    return lessonOptions.filter(
-      (lesson) =>
-        (!values.chapterId || lesson.chapterId === values.chapterId) &&
-        lesson.lessonType === values.type,
+  useEffect(() => {
+    if (!values.levelId && levelOptions.length) {
+      setValues((prev) => ({
+        ...prev,
+        levelId: levelOptions[0].value,
+      }));
+    }
+  }, [levelOptions, values.levelId]);
+
+  useEffect(() => {
+    if (!values.levelId) return;
+
+    if (!chapterOptions.length) {
+      if (values.chapterId || values.lessonId) {
+        setValues((prev) => ({
+          ...prev,
+          chapterId: "",
+          lessonId: "",
+        }));
+      }
+      return;
+    }
+
+    const hasSelectedChapter = chapterOptions.some(
+      (chapter: FormOption) => chapter.value === values.chapterId,
     );
-  }, [lessonOptions, values.chapterId, values.type]);
+
+    if (!hasSelectedChapter) {
+      setValues((prev) => ({
+        ...prev,
+        chapterId: chapterOptions[0].value,
+        lessonId: "",
+      }));
+    }
+  }, [chapterOptions, values.chapterId, values.lessonId, values.levelId]);
+
+  const filteredLessonOptions = useMemo(() => {
+    return chapterLessons
+      .map((lesson: any) => ({
+        label: `${lesson.lessonType} ${lesson.index}`,
+        value: lesson.id,
+      }));
+  }, [chapterLessons]);
+
+  useEffect(() => {
+    if (!values.chapterId) {
+      if (values.lessonId) {
+        setValues((prev) => ({
+          ...prev,
+          lessonId: "",
+        }));
+      }
+      return;
+    }
+
+    if (!filteredLessonOptions.length) {
+      if (values.lessonId) {
+        setValues((prev) => ({
+          ...prev,
+          lessonId: "",
+        }));
+      }
+      return;
+    }
+
+    const hasSelectedLesson = filteredLessonOptions.some(
+      (lesson: FormOption) => lesson.value === values.lessonId,
+    );
+
+    if (!hasSelectedLesson) {
+      setValues((prev) => ({
+        ...prev,
+        lessonId: filteredLessonOptions[0].value,
+      }));
+    }
+  }, [filteredLessonOptions, values.chapterId, values.lessonId]);
 
   const handleFieldChange = (
     key: keyof QuestionFormValues,
     value: QuestionFormValues[keyof QuestionFormValues],
   ) => {
     setValues((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleTypeChange = (value: "DIALOGUE" | "SENTENCE") => {
-    setValues((prev) => ({
-      ...prev,
-      type: value,
-      lessonId: "",
-    }));
   };
 
   const handleChapterChange = (value: string) => {
@@ -110,7 +195,21 @@ const QuestionFormModal = ({
     }));
   };
 
+  const handleLevelChange = (value: string) => {
+    setValues((prev) => ({
+      ...prev,
+      levelId: value,
+      chapterId: "",
+      lessonId: "",
+    }));
+  };
+
   const handleSubmit = async () => {
+    if (!values.levelId) {
+      toast.error("Level is required");
+      return;
+    }
+
     if (!values.chapterId) {
       toast.error("Chapter is required");
       return;
@@ -126,7 +225,7 @@ const QuestionFormModal = ({
       return;
     }
 
-    if (values.type === "SENTENCE") {
+    if (selectedLessonType === "SENTENCE") {
       if (!values.sentenceInEnglish?.trim()) {
         toast.error("English sentence is required");
         return;
@@ -141,7 +240,7 @@ const QuestionFormModal = ({
       }
     }
 
-    if (values.type === "DIALOGUE") {
+    if (selectedLessonType === "DIALOGUE") {
       if (!values.fullSentence?.trim()) {
         toast.error("Full sentence is required");
         return;
@@ -181,19 +280,6 @@ const QuestionFormModal = ({
         <div className="mt-6 space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-3">
-              <label className="text-sm font-medium text-white">Type</label>
-              <Select value={values.type} onValueChange={handleTypeChange}>
-                <SelectTrigger className="h-12! w-full rounded-2xl border-border bg-transparent px-5 text-white">
-                  <SelectValue placeholder="Question type" />
-                </SelectTrigger>
-                <SelectContent className="border-border bg-card text-white">
-                  <SelectItem value="SENTENCE">SENTENCE</SelectItem>
-                  <SelectItem value="DIALOGUE">DIALOGUE</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-3">
               <label className="text-sm font-medium text-white">Index</label>
               <Input
                 type="number"
@@ -205,19 +291,28 @@ const QuestionFormModal = ({
                 className="h-12 rounded-2xl border-border bg-transparent px-5 text-white"
               />
             </div>
+
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-white">
+                Lesson Type
+              </label>
+              <div className="flex h-12 items-center rounded-2xl border border-border bg-transparent px-5 text-sm text-white">
+                {selectedLessonType || "Select lesson first"}
+              </div>
+            </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-3">
-              <label className="text-sm font-medium text-white">Chapter</label>
-              <Select value={values.chapterId} onValueChange={handleChapterChange}>
+              <label className="text-sm font-medium text-white">Level</label>
+              <Select value={values.levelId} onValueChange={handleLevelChange}>
                 <SelectTrigger className="h-12! w-full rounded-2xl border-border bg-transparent px-5 text-white">
-                  <SelectValue placeholder="Select chapter" />
+                  <SelectValue placeholder="Select level" />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-card text-white">
-                  {chapterOptions.map((chapter) => (
-                    <SelectItem key={chapter.value} value={chapter.value}>
-                      {chapter.label}
+                  {levelOptions.map((level: FormOption) => (
+                    <SelectItem key={level.value} value={level.value}>
+                      {level.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -225,26 +320,57 @@ const QuestionFormModal = ({
             </div>
 
             <div className="space-y-3">
-              <label className="text-sm font-medium text-white">Lesson</label>
+              <label className="text-sm font-medium text-white">Chapter</label>
               <Select
-                value={values.lessonId}
-                onValueChange={(value) => handleFieldChange("lessonId", value)}
+                value={values.chapterId}
+                onValueChange={handleChapterChange}
               >
                 <SelectTrigger className="h-12! w-full rounded-2xl border-border bg-transparent px-5 text-white">
-                  <SelectValue placeholder="Select lesson" />
+                  <SelectValue placeholder="Select chapter" />
                 </SelectTrigger>
                 <SelectContent className="border-border bg-card text-white">
-                  {filteredLessonOptions.map((lesson) => (
-                    <SelectItem key={lesson.value} value={lesson.value}>
-                      {lesson.label}
-                    </SelectItem>
-                  ))}
+                  {chapterOptions.length ? (
+                    chapterOptions.map((chapter: FormOption) => (
+                      <SelectItem key={chapter.value} value={chapter.value}>
+                        {chapter.label}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <div className="px-3 py-2 text-sm text-card-foreground">
+                      No chapters found
+                    </div>
+                  )}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {values.type === "SENTENCE" ? (
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-white">Lesson</label>
+            <Select
+              value={values.lessonId}
+              onValueChange={(value) => handleFieldChange("lessonId", value)}
+            >
+              <SelectTrigger className="h-12! w-full rounded-2xl border-border bg-transparent px-5 text-white">
+                <SelectValue placeholder="Select lesson" />
+              </SelectTrigger>
+              <SelectContent className="border-border bg-card text-white">
+                {filteredLessonOptions.length ? (
+                  filteredLessonOptions.map((lesson: FormOption) => (
+                    <SelectItem key={lesson.value} value={lesson.value}>
+                      {lesson.label}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-sm text-card-foreground">
+                    No lessons found
+                  </div>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {selectedLessonType === "SENTENCE" ? (
             <>
               <div className="space-y-3">
                 <label className="text-sm font-medium text-white">
@@ -284,7 +410,7 @@ const QuestionFormModal = ({
                 />
               </div>
             </>
-          ) : (
+          ) : selectedLessonType === "DIALOGUE" ? (
             <>
               <div className="space-y-3">
                 <label className="text-sm font-medium text-white">
@@ -311,7 +437,7 @@ const QuestionFormModal = ({
                 />
               </div>
             </>
-          )}
+          ) : null}
 
           <Button
             type="button"

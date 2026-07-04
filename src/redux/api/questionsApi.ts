@@ -8,10 +8,10 @@ type GetQuestionsParams = {
 const questionsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getQuestions: builder.query({
-      query: ({ page, limit }: GetQuestionsParams) => ({
+      query: (params?: GetQuestionsParams) => ({
         url: "/questions",
         method: "GET",
-        params: { page, limit },
+        params,
       }),
       providesTags: ["questions"],
     }),

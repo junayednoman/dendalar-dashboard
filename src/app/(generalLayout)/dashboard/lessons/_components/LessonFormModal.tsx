@@ -87,6 +87,14 @@ const LessonFormModal = ({
   useEffect(() => {
     if (!values.levelId) return;
 
+    if (!filteredChapterOptions.length && values.chapterId) {
+      setValues((prev) => ({
+        ...prev,
+        chapterId: "",
+      }));
+      return;
+    }
+
     if (
       filteredChapterOptions.length &&
       !filteredChapterOptions.some(
@@ -181,11 +189,19 @@ const LessonFormModal = ({
                 <SelectValue placeholder="Chapter name" />
               </SelectTrigger>
               <SelectContent className="border-border bg-card text-white">
-                {filteredChapterOptions.map((chapter: { label: string; value: string }) => (
-                  <SelectItem key={chapter.value} value={chapter.value}>
-                    {chapter.label}
-                  </SelectItem>
-                ))}
+                {filteredChapterOptions.length ? (
+                  filteredChapterOptions.map(
+                    (chapter: { label: string; value: string }) => (
+                      <SelectItem key={chapter.value} value={chapter.value}>
+                        {chapter.label}
+                      </SelectItem>
+                    ),
+                  )
+                ) : (
+                  <div className="px-3 py-2 text-sm text-card-foreground">
+                    No chapter found
+                  </div>
+                )}
               </SelectContent>
             </Select>
           </div>

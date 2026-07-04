@@ -1,16 +1,23 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { skipToken } from "@reduxjs/toolkit/query";
+import { useEffect, useMemo, useState } from "react";
 import AErrorMessage from "@/components/AErrorMessage";
-import { AFilterSelect } from "@/components/form/AFilterSelect";
 import ASpinner from "@/components/ui/ASpinner";
-import { APagination } from "@/components/ui/APagination";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Search, Plus } from "lucide-react";
 import handleMutation from "@/utils/handleMutation";
 import { useGetChaptersQuery } from "@/redux/api/chaptersApi";
 import { useGetLessonsQuery } from "@/redux/api/lessonsApi";
+import { useGetLevelsQuery } from "@/redux/api/levelsApi";
 import {
   useCreateQuestionMutation,
   useDeleteQuestionMutation,
@@ -20,40 +27,91 @@ import {
 import QuestionCard, { QuestionItem } from "./QuestionCard";
 import QuestionFormModal, { QuestionFormValues } from "./QuestionFormModal";
 
-const typeOptions = [
-  { label: "All Types", value: "all" },
-  { label: "SENTENCE", value: "SENTENCE" },
-  { label: "DIALOGUE", value: "DIALOGUE" },
-];
-
 const QuestionsContainer = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedChapter, setSelectedChapter] = useState("all");
-  const [selectedLesson, setSelectedLesson] = useState("all");
-  const [selectedType, setSelectedType] = useState("all");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedLevel, setSelectedLevel] = useState("");
+  const [selectedChapter, setSelectedChapter] = useState("");
+  const [selectedLesson, setSelectedLesson] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingQuestion, setEditingQuestion] = useState<QuestionItem | null>(
     null,
   );
-  const limit = 7;
 
-  const { data, isLoading, isError, error, refetch } = useGetQuestionsQuery({
-    page: currentPage,
-    limit,
-  });
-  const { data: chaptersData } = useGetChaptersQuery(undefined);
-  const { data: lessonsData } = useGetLessonsQuery(undefined);
+  const { data, isLoading, isError, error, refetch } = useGetQuestionsQuery(
+    undefined,
+  );
+  const { data: levelsData } = useGetLevelsQuery(undefined);
+  const levels = levelsData?.data || [];
+
+  useEffect(() => {
+    if (!selectedLevel && levels.length) {
+      setSelectedLevel(levels[0].id);
+    }
+  }, [levels, selectedLevel]);
+
+  const { data: chaptersData, isFetching: isChaptersFetching } =
+    useGetChaptersQuery(selectedLevel);
+  const { data: allChaptersData } = useGetChaptersQuery(undefined);
+  const chapters = chaptersData?.data || [];
+  const allChapters = allChaptersData?.data || [];
+
+  useEffect(() => {
+    if (!selectedLevel) return;
+
+    if (!chapters.length) {
+      setSelectedChapter("");
+      setSelectedLesson("");
+      return;
+    }
+
+    const hasSelectedChapter = chapters.some(
+      (chapter: any) => chapter.id === selectedChapter,
+    );
+
+    if (!hasSelectedChapter) {
+      setSelectedChapter(chapters[0].id);
+      setSelectedLesson("");
+    }
+  }, [chapters, selectedChapter, selectedLevel]);
+
+  const { data: lessonsData, isFetching: isLessonsFetching } = useGetLessonsQuery(
+    selectedChapter ? selectedChapter : skipToken,
+  );
+  const lessons = selectedChapter ? lessonsData?.data || [] : [];
+
+  useEffect(() => {
+    if (!selectedChapter) {
+      setSelectedLesson("");
+      return;
+    }
+
+    if (!lessons.length) {
+      setSelectedLesson("");
+      return;
+    }
+
+    const hasSelectedLesson = lessons.some(
+      (lesson: any) => lesson.id === selectedLesson,
+    );
+
+    if (!hasSelectedLesson) {
+      setSelectedLesson(lessons[0].id);
+    }
+  }, [lessons, selectedChapter, selectedLesson]);
+
   const [createQuestion, { isLoading: isCreating }] =
     useCreateQuestionMutation();
   const [updateQuestion, { isLoading: isUpdating }] =
     useUpdateQuestionMutation();
   const [deleteQuestion] = useDeleteQuestionMutation();
 
-  const questions: QuestionItem[] = data?.data?.questions || [];
-  const totalQuestions = data?.data?.meta?.total || 0;
-  const chapters = chaptersData?.data || [];
-  const lessons = lessonsData?.data || [];
+  const questions: QuestionItem[] =
+    data?.data?.questions || data?.data || [];
+
+  const levelOptions = levels.map((level: any) => ({
+    label: level.name,
+    value: level.id,
+  }));
 
   const chapterOptions = chapters.map((chapter: any) => ({
     label: chapter.name,
@@ -67,10 +125,10 @@ const QuestionsContainer = () => {
     lessonType: lesson.lessonType,
   }));
 
-  const filteredLessonFilterOptions = lessonOptions.filter(
-    (lesson: { chapterId: string }) =>
-      selectedChapter === "all" || lesson.chapterId === selectedChapter,
-  );
+  const hasNoChaptersForSelectedLevel =
+    !!selectedLevel && !isChaptersFetching && chapters.length === 0;
+  const hasNoLessonsForSelectedChapter =
+    !!selectedChapter && !isLessonsFetching && lessons.length === 0;
 
   const filteredQuestions = useMemo(() => {
     return questions.filter((question) => {
@@ -81,37 +139,24 @@ const QuestionsContainer = () => {
           ?.toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
         question.fullSentence?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesChapter =
-        selectedChapter === "all" || question.chapterId === selectedChapter;
-      const matchesLesson =
-        selectedLesson === "all" || question.lessonId === selectedLesson;
-      const matchesType =
-        selectedType === "all" || question.type === selectedType;
+      const matchesChapter = !!selectedChapter && question.chapterId === selectedChapter;
+      const matchesLesson = !!selectedLesson && question.lessonId === selectedLesson;
 
-      return matchesSearch && matchesChapter && matchesLesson && matchesType;
+      return matchesSearch && matchesChapter && matchesLesson;
     });
-  }, [questions, searchTerm, selectedChapter, selectedLesson, selectedType]);
+  }, [questions, searchTerm, selectedChapter, selectedLesson]);
 
   const handleCreateQuestion = async (values: QuestionFormValues) => {
-    const payload =
-      values.type === "SENTENCE"
-        ? {
-            chapterId: values.chapterId,
-            lessonId: values.lessonId,
-            type: values.type,
-            index: values.index,
-            sentenceInEnglish: values.sentenceInEnglish,
-            sentenceInLearningLanguage: values.sentenceInLearningLanguage,
-            hint: values.hint,
-          }
-        : {
-            chapterId: values.chapterId,
-            lessonId: values.lessonId,
-            type: values.type,
-            index: values.index,
-            fullSentence: values.fullSentence,
-            missingWord: values.missingWord,
-          };
+    const payload = {
+      chapterId: values.chapterId,
+      lessonId: values.lessonId,
+      index: values.index,
+      sentenceInEnglish: values.sentenceInEnglish,
+      sentenceInLearningLanguage: values.sentenceInLearningLanguage,
+      hint: values.hint,
+      fullSentence: values.fullSentence,
+      missingWord: values.missingWord,
+    };
 
     await handleMutation(payload, createQuestion, "Creating question...", () => {
       setIsCreateOpen(false);
@@ -121,25 +166,16 @@ const QuestionsContainer = () => {
   const handleEditQuestion = async (values: QuestionFormValues) => {
     if (!editingQuestion) return;
 
-    const payload =
-      values.type === "SENTENCE"
-        ? {
-            chapterId: values.chapterId,
-            lessonId: values.lessonId,
-            type: values.type,
-            index: values.index,
-            sentenceInEnglish: values.sentenceInEnglish,
-            sentenceInLearningLanguage: values.sentenceInLearningLanguage,
-            hint: values.hint,
-          }
-        : {
-            chapterId: values.chapterId,
-            lessonId: values.lessonId,
-            type: values.type,
-            index: values.index,
-            fullSentence: values.fullSentence,
-            missingWord: values.missingWord,
-          };
+    const payload = {
+      chapterId: values.chapterId,
+      lessonId: values.lessonId,
+      index: values.index,
+      sentenceInEnglish: values.sentenceInEnglish,
+      sentenceInLearningLanguage: values.sentenceInLearningLanguage,
+      hint: values.hint,
+      fullSentence: values.fullSentence,
+      missingWord: values.missingWord,
+    };
 
     await handleMutation(
       { id: editingQuestion.id, data: payload },
@@ -170,36 +206,72 @@ const QuestionsContainer = () => {
           </div>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap xl:flex-nowrap">
-            <AFilterSelect
-              value={selectedType}
-              onChange={setSelectedType}
-              options={typeOptions}
-              placeholder="Type"
-              className="!w-[140px]"
-            />
-            <AFilterSelect
-              value={selectedChapter}
-              onChange={(value) => {
-                setSelectedChapter(value);
-                setSelectedLesson("all");
+            <Select
+              value={selectedLevel}
+              onValueChange={(value) => {
+                setSelectedChapter("");
+                setSelectedLesson("");
+                setSelectedLevel(value);
               }}
-              options={[
-                { label: "All chapters", value: "all" },
-                ...chapterOptions,
-              ]}
-              placeholder="Chapter"
-              className="!w-[160px]"
-            />
-            <AFilterSelect
+            >
+              <SelectTrigger className="h-12! min-w-30 rounded-xl border-border bg-transparent px-4 text-white">
+                <SelectValue placeholder="Level" />
+              </SelectTrigger>
+              <SelectContent className="border-border bg-card text-white">
+                {levelOptions.map((level: { label: string; value: string }) => (
+                  <SelectItem key={level.value} value={level.value}>
+                    {level.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={selectedChapter}
+              onValueChange={(value) => {
+                setSelectedLesson("");
+                setSelectedChapter(value);
+              }}
+            >
+              <SelectTrigger className="h-12! min-w-35 rounded-xl border-border bg-transparent px-4 text-white">
+                <SelectValue placeholder="Chapter" />
+              </SelectTrigger>
+              <SelectContent className="border-border bg-card text-white">
+                {chapterOptions.length ? (
+                  chapterOptions.map((chapter: { label: string; value: string }) => (
+                    <SelectItem key={chapter.value} value={chapter.value}>
+                      {chapter.label}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-sm text-card-foreground">
+                    No chapters found
+                  </div>
+                )}
+              </SelectContent>
+            </Select>
+
+            <Select
               value={selectedLesson}
-              onChange={setSelectedLesson}
-              options={[
-                { label: "All lessons", value: "all" },
-                ...filteredLessonFilterOptions,
-              ]}
-              placeholder="Lesson"
-              className="!w-[160px]"
-            />
+              onValueChange={setSelectedLesson}
+            >
+              <SelectTrigger className="h-12! min-w-35 rounded-xl border-border bg-transparent px-4 text-white">
+                <SelectValue placeholder="Lesson" />
+              </SelectTrigger>
+              <SelectContent className="border-border bg-card text-white">
+                {lessonOptions.length ? (
+                  lessonOptions.map((lesson: { label: string; value: string }) => (
+                    <SelectItem key={lesson.value} value={lesson.value}>
+                      {lesson.label}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-sm text-card-foreground">
+                    No lessons found
+                  </div>
+                )}
+              </SelectContent>
+            </Select>
             <Button
               onClick={() => setIsCreateOpen(true)}
               className="h-12 rounded-xl px-5 text-sm"
@@ -210,7 +282,7 @@ const QuestionsContainer = () => {
           </div>
         </div>
 
-        {isLoading ? (
+        {isLoading || isChaptersFetching || isLessonsFetching ? (
           <ASpinner size={120} className="min-h-[320px]" />
         ) : isError ? (
           <AErrorMessage
@@ -218,7 +290,9 @@ const QuestionsContainer = () => {
             onRetry={refetch}
             className="min-h-[320px]"
           />
-        ) : filteredQuestions.length ? (
+        ) : !hasNoChaptersForSelectedLevel &&
+          !hasNoLessonsForSelectedChapter &&
+          filteredQuestions.length ? (
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             {filteredQuestions.map((question) => (
               <QuestionCard
@@ -241,14 +315,6 @@ const QuestionsContainer = () => {
             </div>
           </div>
         )}
-
-        <APagination
-          totalItems={totalQuestions}
-          itemsPerPage={limit}
-          currentPage={currentPage}
-          onPageChange={(page) => setCurrentPage(page)}
-          setCurrentPage={setCurrentPage}
-        />
       </div>
 
       <QuestionFormModal
@@ -256,9 +322,9 @@ const QuestionsContainer = () => {
         onOpenChange={setIsCreateOpen}
         onSubmit={handleCreateQuestion}
         defaultValues={{
+          levelId: selectedLevel,
           chapterId: "",
           lessonId: "",
-          type: "SENTENCE",
           index: 1,
           sentenceInEnglish: "",
           sentenceInLearningLanguage: "",
@@ -269,11 +335,11 @@ const QuestionsContainer = () => {
         title="Add New Question"
         description="Create a sentence or dialogue question"
         submitLabel={isCreating ? "Submitting..." : "Submit"}
-        chapterOptions={chapterOptions}
-        lessonOptions={lessonOptions}
+        levelOptions={levelOptions}
       />
 
       <QuestionFormModal
+        key={editingQuestion?.id ?? "edit-question"}
         open={!!editingQuestion}
         onOpenChange={(open) => {
           if (!open) setEditingQuestion(null);
@@ -282,9 +348,12 @@ const QuestionsContainer = () => {
         defaultValues={
           editingQuestion
             ? {
+                levelId:
+                  allChapters.find(
+                    (chapter: any) => chapter.id === editingQuestion.chapterId,
+                  )?.levelId ?? selectedLevel,
                 chapterId: editingQuestion.chapterId,
                 lessonId: editingQuestion.lessonId,
-                type: editingQuestion.type as "DIALOGUE" | "SENTENCE",
                 index: editingQuestion.index,
                 sentenceInEnglish: editingQuestion.sentenceInEnglish || "",
                 sentenceInLearningLanguage:
@@ -298,8 +367,7 @@ const QuestionsContainer = () => {
         title="Update Question"
         description="Update question details"
         submitLabel={isUpdating ? "Updating..." : "Update"}
-        chapterOptions={chapterOptions}
-        lessonOptions={lessonOptions}
+        levelOptions={levelOptions}
       />
     </>
   );
