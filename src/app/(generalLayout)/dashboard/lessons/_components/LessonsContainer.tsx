@@ -1,5 +1,6 @@
 "use client";
 
+import { skipToken } from "@reduxjs/toolkit/query";
 import { useEffect, useMemo, useState } from "react";
 import AErrorMessage from "@/components/AErrorMessage";
 import handleMutation from "@/utils/handleMutation";
@@ -57,7 +58,8 @@ const LessonsContainer = () => {
       setSelectedLevel(levels[0].id);
     }
   }, [levels, selectedLevel]);
-  const { data: chaptersData } = useGetChaptersQuery(selectedLevel);
+  const { data: chaptersData, isFetching: isChaptersFetching } =
+    useGetChaptersQuery(selectedLevel);
   const { data: allChaptersData } = useGetChaptersQuery(undefined);
   const chapters = chaptersData?.data || [];
   const allChapters = allChaptersData?.data || [];
@@ -79,14 +81,17 @@ const LessonsContainer = () => {
     }
   }, [chapters, selectedChapter, selectedLevel]);
 
-  const { data, isLoading, isError, error, refetch } =
-    useGetLessonsQuery(selectedChapter);
+  const { data, isLoading, isError, error, refetch } = useGetLessonsQuery(
+    selectedChapter ? selectedChapter : skipToken,
+  );
 
   const [createLesson, { isLoading: isCreating }] = useCreateLessonMutation();
   const [updateLesson, { isLoading: isUpdating }] = useUpdateLessonMutation();
   const [deleteLesson] = useDeleteLessonMutation();
 
-  const lessons: LessonApiItem[] = data?.data || [];
+  const hasNoChaptersForSelectedLevel =
+    !!selectedLevel && !isChaptersFetching && chapters.length === 0;
+  const lessons: LessonApiItem[] = selectedChapter ? data?.data || [] : [];
 
   const filteredLessons = useMemo(() => {
     return lessons.filter((lesson) =>
@@ -189,7 +194,13 @@ const LessonsContainer = () => {
           </div>
 
           <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap xl:flex-nowrap">
-            <Select value={selectedLevel} onValueChange={setSelectedLevel}>
+            <Select
+              value={selectedLevel}
+              onValueChange={(value) => {
+                setSelectedChapter("");
+                setSelectedLevel(value);
+              }}
+            >
               <SelectTrigger className="h-12! min-w-30 rounded-xl border-border bg-transparent px-4 text-white">
                 <SelectValue placeholder="Level" />
               </SelectTrigger>
@@ -207,12 +218,16 @@ const LessonsContainer = () => {
                 <SelectValue placeholder="Chapter" />
               </SelectTrigger>
               <SelectContent className="border-border bg-card text-white">
-                {chapterOptions.map(
-                  (chapter: { label: string; value: string }) => (
+                {chapterOptions.length ? (
+                  chapterOptions.map((chapter: { label: string; value: string }) => (
                     <SelectItem key={chapter.value} value={chapter.value}>
                       {chapter.label}
                     </SelectItem>
-                  ),
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-sm text-card-foreground">
+                    No chapters found
+                  </div>
                 )}
               </SelectContent>
             </Select>
@@ -227,7 +242,7 @@ const LessonsContainer = () => {
           </div>
         </div>
 
-        {isLoading ? (
+        {isLoading || isChaptersFetching ? (
           <ASpinner size={120} className="min-h-[320px]" />
         ) : isError ? (
           <AErrorMessage
@@ -235,7 +250,7 @@ const LessonsContainer = () => {
             onRetry={refetch}
             className="min-h-[320px]"
           />
-        ) : filteredLessons.length ? (
+        ) : !hasNoChaptersForSelectedLevel && filteredLessons.length ? (
           <div className="grid grid-cols-1 gap-x-4 gap-y-8 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {filteredLessons.map((lesson) => (
               <LessonCard
