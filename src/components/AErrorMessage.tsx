@@ -1,8 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { AlertCircle } from "lucide-react";
 
+type ErrorLike = {
+  data?: {
+    message?: string;
+  };
+  error?: string;
+};
+
 interface ErrorComponentProps {
-  error?: any;
+  error?: unknown;
   onRetry: () => void;
   className?: string;
 }
@@ -12,9 +19,10 @@ export default function AErrorMessage({
   onRetry,
   className = "!bg-transparent",
 }: ErrorComponentProps) {
+  const parsedError = error as ErrorLike | undefined;
   const message =
-    (error as any)?.data?.message ||
-    (error as any)?.error ||
+    parsedError?.data?.message ||
+    parsedError?.error ||
     "Something went wrong. Please try again.";
   return (
     <div

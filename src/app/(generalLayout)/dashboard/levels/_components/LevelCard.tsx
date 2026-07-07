@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { AAlertDialog } from "@/components/modal/AAlertDialog";
 import {
   DropdownMenu,
@@ -70,9 +71,12 @@ const LevelCard = ({ level, onEdit, onDelete }: LevelCardProps) => {
         </div>
 
         <div className="flex min-h-[260px] items-center justify-center rounded-[18px] bg-black/20 p-4">
-          <img
+          <Image
             src={level.image || "/window.svg"}
             alt={level.name}
+            width={400}
+            height={220}
+            unoptimized
             className="max-h-[220px] w-full rounded-xl object-contain"
           />
         </div>

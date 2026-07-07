@@ -50,6 +50,11 @@ type LevelOption = {
   value: string;
 };
 
+type LevelApiItem = {
+  id: string;
+  name: string;
+};
+
 const ChaptersContainer = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLevel, setSelectedLevel] = useState("");
@@ -68,11 +73,15 @@ const ChaptersContainer = () => {
   const [createChapter, { isLoading: isCreating }] = useCreateChapterMutation();
   const [updateChapter, { isLoading: isUpdating }] = useUpdateChapterMutation();
   const [deleteChapter] = useDeleteChapterMutation();
-  const chapters: ChapterApiItem[] = data?.data || [];
-  const levelOptions: LevelOption[] = (levelsData?.data || []).map((level: any) => ({
-    label: `${level.name}`,
-    value: level.id,
-  }));
+  const chapters = useMemo<ChapterApiItem[]>(() => data?.data || [], [data]);
+  const levelOptions = useMemo<LevelOption[]>(
+    () =>
+      ((levelsData?.data as LevelApiItem[] | undefined) || []).map((level) => ({
+        label: level.name,
+        value: level.id,
+      })),
+    [levelsData],
+  );
 
   useEffect(() => {
     if (!selectedLevel && levelOptions.length) {

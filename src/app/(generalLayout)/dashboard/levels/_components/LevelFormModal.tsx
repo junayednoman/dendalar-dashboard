@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import AForm from "@/components/form/AForm";
 import { AInput } from "@/components/form/AInput";
@@ -122,9 +123,12 @@ const LevelFormModal = ({
               />
               {previewUrl ? (
                 <div className="overflow-hidden rounded-2xl border border-border bg-background p-3">
-                  <img
+                  <Image
                     src={previewUrl}
                     alt="Level preview"
+                    width={512}
+                    height={128}
+                    unoptimized
                     className="h-32 w-full rounded-xl object-cover"
                   />
                 </div>

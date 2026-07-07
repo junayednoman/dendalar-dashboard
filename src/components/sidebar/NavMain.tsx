@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -76,7 +77,7 @@ export function NavMain() {
                   href={item.url}
                   className="flex items-center gap-2 w-full"
                 >
-                  {item.icon && (item?.icon as any)}
+                  {item.icon && (item.icon as ReactNode)}
                   <span>{item.title}</span>
                 </Link>
               </SidebarMenuButton>

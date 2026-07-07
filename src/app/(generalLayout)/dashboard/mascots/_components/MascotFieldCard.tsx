@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,9 +84,12 @@ const MascotFieldCard = ({
 
         <div className="overflow-hidden rounded-2xl border border-border bg-background">
           {previewUrl ? (
-            <img
+            <Image
               src={previewUrl}
               alt={label}
+              width={800}
+              height={208}
+              unoptimized
               className="h-52 w-full object-cover"
             />
           ) : (

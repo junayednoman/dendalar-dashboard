@@ -41,6 +41,17 @@ type LessonApiItem = {
   };
 };
 
+type LevelApiItem = {
+  id: string;
+  name: string;
+};
+
+type ChapterApiItem = {
+  id: string;
+  name: string;
+  levelId: string;
+};
+
 const LessonsContainer = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLevel, setSelectedLevel] = useState("");
@@ -51,7 +62,7 @@ const LessonsContainer = () => {
   );
 
   const { data: levelsData } = useGetLevelsQuery(undefined);
-  const levels = levelsData?.data || [];
+  const levels = useMemo<LevelApiItem[]>(() => levelsData?.data || [], [levelsData]);
 
   useEffect(() => {
     if (!selectedLevel && levels.length) {
@@ -61,8 +72,14 @@ const LessonsContainer = () => {
   const { data: chaptersData, isFetching: isChaptersFetching } =
     useGetChaptersQuery(selectedLevel);
   const { data: allChaptersData } = useGetChaptersQuery(undefined);
-  const chapters = chaptersData?.data || [];
-  const allChapters = allChaptersData?.data || [];
+  const chapters = useMemo<ChapterApiItem[]>(
+    () => chaptersData?.data || [],
+    [chaptersData],
+  );
+  const allChapters = useMemo<ChapterApiItem[]>(
+    () => allChaptersData?.data || [],
+    [allChaptersData],
+  );
 
   useEffect(() => {
     if (!selectedLevel) return;
@@ -73,7 +90,7 @@ const LessonsContainer = () => {
     }
 
     const hasSelectedChapter = chapters.some(
-      (chapter: any) => chapter.id === selectedChapter,
+      (chapter) => chapter.id === selectedChapter,
     );
 
     if (!hasSelectedChapter) {
@@ -91,7 +108,10 @@ const LessonsContainer = () => {
 
   const hasNoChaptersForSelectedLevel =
     !!selectedLevel && !isChaptersFetching && chapters.length === 0;
-  const lessons: LessonApiItem[] = selectedChapter ? data?.data || [] : [];
+  const lessons = useMemo<LessonApiItem[]>(
+    () => (selectedChapter ? data?.data || [] : []),
+    [data, selectedChapter],
+  );
 
   const filteredLessons = useMemo(() => {
     return lessons.filter((lesson) =>
@@ -101,16 +121,24 @@ const LessonsContainer = () => {
     );
   }, [lessons, searchTerm]);
 
-  const chapterOptions = chapters.map((chapter: any) => ({
-    label: chapter.name,
-    value: chapter.id,
-    levelId: chapter.levelId,
-  }));
+  const chapterOptions = useMemo(
+    () =>
+      chapters.map((chapter) => ({
+        label: chapter.name,
+        value: chapter.id,
+        levelId: chapter.levelId,
+      })),
+    [chapters],
+  );
 
-  const levelOptions = levels.map((level: any) => ({
-    label: level.name,
-    value: level.id,
-  }));
+  const levelOptions = useMemo(
+    () =>
+      levels.map((level) => ({
+        label: level.name,
+        value: level.id,
+      })),
+    [levels],
+  );
 
   const createDefaultValues = useMemo(
     () => ({
@@ -126,7 +154,7 @@ const LessonsContainer = () => {
     () => ({
       levelId:
         editingLesson?.chapter?.levelId ??
-        allChapters.find((chapter: any) => chapter.id === editingLesson?.chapterId)
+        allChapters.find((chapter) => chapter.id === editingLesson?.chapterId)
           ?.levelId ??
         selectedLevel,
       lessonType: editingLesson?.lessonType ?? "",

@@ -11,9 +11,13 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks/hooks";
 import { selectUser } from "@/redux/slice/authSlice";
 import { baseApi } from "@/redux/api/baseApi";
 
+type NotificationEvent = {
+  message: string;
+};
+
 const Header = () => {
   const { data } = useGetAllNotificationsQuery("");
-  const tokenUser = useAppSelector(selectUser) as any;
+  const tokenUser = useAppSelector(selectUser);
   const dispatch = useAppDispatch();
 
   const unreadNotifications = data?.data?.unreadNotification;
@@ -25,12 +29,15 @@ const Header = () => {
       }
 
       // Listen for real-time notification event
-      socket.on(`notification::${tokenUser?._id}`, (newNotification: any) => {
+      socket.on(
+        `notification::${tokenUser?._id}`,
+        (newNotification: NotificationEvent) => {
         toast.info(newNotification.message, {
           duration: 4000,
         });
         dispatch(baseApi.util.invalidateTags(["notification"]));
-      });
+        },
+      );
 
       socket.on("connect", () => {
         console.log("Socket connected");
@@ -46,7 +53,7 @@ const Header = () => {
         // Do not disconnect socket here to maintain connection across components
       };
     }
-  }, [socket]);
+  }, [dispatch, socket, tokenUser?._id]);
   return (
     <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12 sticky top-0 right-0 z-50 bg-sidebar">
       <div className="flex items-center justify-between gap-2 px-4 w-full">

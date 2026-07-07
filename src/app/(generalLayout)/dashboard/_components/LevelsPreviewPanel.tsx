@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Search } from "lucide-react";
 import AErrorMessage from "@/components/AErrorMessage";
@@ -24,7 +25,7 @@ const LevelsPreviewPanel = () => {
   const { data, isLoading, isError, error, refetch } = useGetLevelsQuery(
     undefined,
   );
-  const levels: LevelApiItem[] = data?.data || [];
+  const levels = useMemo<LevelApiItem[]>(() => data?.data || [], [data]);
 
   const filteredLevels = useMemo(() => {
     return levels.filter((level) =>
@@ -70,9 +71,12 @@ const LevelsPreviewPanel = () => {
               className="flex items-center justify-between rounded-lg border border-border p-4 transition-colors hover:bg-background/40"
             >
               <div className="flex items-center gap-3">
-                <img
+                <Image
                   src={level.image || "/window.svg"}
                   alt={level.name}
+                  width={48}
+                  height={48}
+                  unoptimized
                   className="h-12 w-12 rounded-xl object-cover"
                 />
                 <div>

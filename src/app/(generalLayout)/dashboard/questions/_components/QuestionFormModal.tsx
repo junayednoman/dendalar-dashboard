@@ -50,6 +50,17 @@ type FormOption = {
   value: string;
 };
 
+type ChapterApiItem = {
+  id: string;
+  name: string;
+};
+
+type LessonApiItem = {
+  id: string;
+  index: number;
+  lessonType: "DIALOGUE" | "SENTENCE";
+};
+
 const emptyValues: QuestionFormValues = {
   levelId: "",
   chapterId: "",
@@ -74,11 +85,14 @@ const QuestionFormModal = ({
 }: QuestionFormModalProps) => {
   const [values, setValues] = useState<QuestionFormValues>(emptyValues);
   const { data: chaptersData } = useGetChaptersQuery(values.levelId);
-  const chapters = chaptersData?.data || [];
+  const chapters = useMemo<ChapterApiItem[]>(
+    () => chaptersData?.data || [],
+    [chaptersData],
+  );
 
   const chapterOptions = useMemo(
     () =>
-      chapters.map((chapter: any) => ({
+      chapters.map((chapter) => ({
         label: chapter.name,
         value: chapter.id,
       })),
@@ -88,9 +102,12 @@ const QuestionFormModal = ({
   const { data: lessonsData } = useGetLessonsQuery(
     values.chapterId ? values.chapterId : skipToken,
   );
-  const chapterLessons = values.chapterId ? lessonsData?.data || [] : [];
+  const chapterLessons = useMemo<LessonApiItem[]>(
+    () => (values.chapterId ? lessonsData?.data || [] : []),
+    [lessonsData, values.chapterId],
+  );
   const selectedLesson = chapterLessons.find(
-    (lesson: any) => lesson.id === values.lessonId,
+    (lesson) => lesson.id === values.lessonId,
   );
   const selectedLessonType = selectedLesson?.lessonType as
     | "DIALOGUE"
@@ -141,7 +158,7 @@ const QuestionFormModal = ({
 
   const filteredLessonOptions = useMemo(() => {
     return chapterLessons
-      .map((lesson: any) => ({
+      .map((lesson) => ({
         label: `${lesson.lessonType} ${lesson.index}`,
         value: lesson.id,
       }));

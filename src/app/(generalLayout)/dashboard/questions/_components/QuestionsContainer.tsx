@@ -27,6 +27,24 @@ import {
 import QuestionCard, { QuestionItem } from "./QuestionCard";
 import QuestionFormModal, { QuestionFormValues } from "./QuestionFormModal";
 
+type LevelApiItem = {
+  id: string;
+  name: string;
+};
+
+type ChapterApiItem = {
+  id: string;
+  name: string;
+  levelId: string;
+};
+
+type LessonApiItem = {
+  id: string;
+  index: number;
+  lessonType: string;
+  chapterId: string;
+};
+
 const QuestionsContainer = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLevel, setSelectedLevel] = useState("");
@@ -41,7 +59,7 @@ const QuestionsContainer = () => {
     undefined,
   );
   const { data: levelsData } = useGetLevelsQuery(undefined);
-  const levels = levelsData?.data || [];
+  const levels = useMemo<LevelApiItem[]>(() => levelsData?.data || [], [levelsData]);
 
   useEffect(() => {
     if (!selectedLevel && levels.length) {
@@ -52,8 +70,14 @@ const QuestionsContainer = () => {
   const { data: chaptersData, isFetching: isChaptersFetching } =
     useGetChaptersQuery(selectedLevel);
   const { data: allChaptersData } = useGetChaptersQuery(undefined);
-  const chapters = chaptersData?.data || [];
-  const allChapters = allChaptersData?.data || [];
+  const chapters = useMemo<ChapterApiItem[]>(
+    () => chaptersData?.data || [],
+    [chaptersData],
+  );
+  const allChapters = useMemo<ChapterApiItem[]>(
+    () => allChaptersData?.data || [],
+    [allChaptersData],
+  );
 
   useEffect(() => {
     if (!selectedLevel) return;
@@ -65,7 +89,7 @@ const QuestionsContainer = () => {
     }
 
     const hasSelectedChapter = chapters.some(
-      (chapter: any) => chapter.id === selectedChapter,
+      (chapter) => chapter.id === selectedChapter,
     );
 
     if (!hasSelectedChapter) {
@@ -77,7 +101,10 @@ const QuestionsContainer = () => {
   const { data: lessonsData, isFetching: isLessonsFetching } = useGetLessonsQuery(
     selectedChapter ? selectedChapter : skipToken,
   );
-  const lessons = selectedChapter ? lessonsData?.data || [] : [];
+  const lessons = useMemo<LessonApiItem[]>(
+    () => (selectedChapter ? lessonsData?.data || [] : []),
+    [lessonsData, selectedChapter],
+  );
 
   useEffect(() => {
     if (!selectedChapter) {
@@ -91,7 +118,7 @@ const QuestionsContainer = () => {
     }
 
     const hasSelectedLesson = lessons.some(
-      (lesson: any) => lesson.id === selectedLesson,
+      (lesson) => lesson.id === selectedLesson,
     );
 
     if (!hasSelectedLesson) {
@@ -105,25 +132,39 @@ const QuestionsContainer = () => {
     useUpdateQuestionMutation();
   const [deleteQuestion] = useDeleteQuestionMutation();
 
-  const questions: QuestionItem[] =
-    data?.data?.questions || data?.data || [];
+  const questions = useMemo<QuestionItem[]>(
+    () => data?.data?.questions || data?.data || [],
+    [data],
+  );
 
-  const levelOptions = levels.map((level: any) => ({
-    label: level.name,
-    value: level.id,
-  }));
+  const levelOptions = useMemo(
+    () =>
+      levels.map((level) => ({
+        label: level.name,
+        value: level.id,
+      })),
+    [levels],
+  );
 
-  const chapterOptions = chapters.map((chapter: any) => ({
-    label: chapter.name,
-    value: chapter.id,
-  }));
+  const chapterOptions = useMemo(
+    () =>
+      chapters.map((chapter) => ({
+        label: chapter.name,
+        value: chapter.id,
+      })),
+    [chapters],
+  );
 
-  const lessonOptions = lessons.map((lesson: any) => ({
-    label: `${lesson.lessonType} ${lesson.index}`,
-    value: lesson.id,
-    chapterId: lesson.chapterId,
-    lessonType: lesson.lessonType,
-  }));
+  const lessonOptions = useMemo(
+    () =>
+      lessons.map((lesson) => ({
+        label: `${lesson.lessonType} ${lesson.index}`,
+        value: lesson.id,
+        chapterId: lesson.chapterId,
+        lessonType: lesson.lessonType,
+      })),
+    [lessons],
+  );
 
   const hasNoChaptersForSelectedLevel =
     !!selectedLevel && !isChaptersFetching && chapters.length === 0;
@@ -350,7 +391,7 @@ const QuestionsContainer = () => {
             ? {
                 levelId:
                   allChapters.find(
-                    (chapter: any) => chapter.id === editingQuestion.chapterId,
+                    (chapter) => chapter.id === editingQuestion.chapterId,
                   )?.levelId ?? selectedLevel,
                 chapterId: editingQuestion.chapterId,
                 lessonId: editingQuestion.lessonId,

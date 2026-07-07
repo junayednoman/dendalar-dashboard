@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Form } from "@/components/ui/form";
 import React from "react";
+import type { Resolver } from "react-hook-form";
 
 interface AFormProps<T extends FieldValues> {
   schema: z.ZodSchema<T>;
@@ -26,7 +27,7 @@ const AForm = <T extends FieldValues>({
   className,
 }: AFormProps<T>) => {
   const form = useForm<T>({
-    resolver: zodResolver(schema as any),
+    resolver: zodResolver(schema as never) as Resolver<T>,
     defaultValues: defaultValues as DefaultValues<T> | undefined,
   });
 

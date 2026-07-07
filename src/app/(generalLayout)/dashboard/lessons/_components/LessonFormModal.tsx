@@ -27,6 +27,16 @@ export interface LessonFormValues {
   index: number;
 }
 
+type ChapterOption = {
+  label: string;
+  value: string;
+};
+
+type ChapterApiItem = {
+  id: string;
+  name: string;
+};
+
 interface LessonFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -59,12 +69,14 @@ const LessonFormModal = ({
 }: LessonFormModalProps) => {
   const [values, setValues] = useState<LessonFormValues>(emptyValues);
   const { data: chaptersData } = useGetChaptersQuery(values.levelId);
-  const filteredChapterOptions = useMemo(
+  const filteredChapterOptions = useMemo<ChapterOption[]>(
     () =>
-      (chaptersData?.data || []).map((chapter: any) => ({
-        label: chapter.name,
-        value: chapter.id,
-      })),
+      (((chaptersData?.data as ChapterApiItem[] | undefined) || []).map(
+        (chapter) => ({
+          label: chapter.name,
+          value: chapter.id,
+        }),
+      )),
     [chaptersData],
   );
 

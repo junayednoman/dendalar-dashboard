@@ -1,10 +1,10 @@
 import { useAppSelector } from "@/redux/hooks/hooks";
 import { selectToken } from "@/redux/slice/authSlice";
 import { useEffect, useState } from "react";
-import { io } from "socket.io-client";
+import { io, Socket } from "socket.io-client";
 
 export const useSocket = () => {
-  const [socket, setSocket] = useState<any>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const token = useAppSelector(selectToken);
 
   useEffect(() => {

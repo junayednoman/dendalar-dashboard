@@ -6,7 +6,6 @@ import ASpinner from "@/components/ui/ASpinner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, Plus } from "lucide-react";
-import { toast } from "sonner";
 import handleMutation from "@/utils/handleMutation";
 import LevelCard, { LevelItem } from "./LevelCard";
 import LevelFormModal from "./LevelFormModal";
@@ -36,7 +35,7 @@ const LevelsContainer = () => {
   const [createLevel, { isLoading: isCreating }] = useCreateLevelMutation();
   const [updateLevel, { isLoading: isUpdating }] = useUpdateLevelMutation();
   const [deleteLevelMutation] = useDeleteLevelMutation();
-  const levels: LevelApiItem[] = data?.data || [];
+  const levels = useMemo<LevelApiItem[]>(() => data?.data || [], [data]);
 
   const filteredLevels = useMemo(() => {
     return levels.filter((level: LevelApiItem) => {

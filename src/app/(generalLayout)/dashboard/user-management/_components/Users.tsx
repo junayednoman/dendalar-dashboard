@@ -15,6 +15,18 @@ const userRoleOptions = [
   { label: "User", value: "USER" },
 ];
 
+type UserListItem = {
+  id: string;
+  email: string;
+  role: string;
+  status?: string;
+  createdAt: string;
+  profile?: {
+    name?: string;
+    image?: string;
+  };
+};
+
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [userRole, setUserRole] = useState<string>("all");
@@ -24,10 +36,13 @@ const Users = () => {
     page: currentPage,
     limit,
   });
-  const users = data?.data?.auths || [];
+  const users = useMemo<UserListItem[]>(
+    () => data?.data?.auths || [],
+    [data],
+  );
   const totalUsers = data?.data?.meta?.total || 0;
   const filteredUsers = useMemo(() => {
-    return users.filter((user: any) => {
+    return users.filter((user) => {
       const matchesRole = userRole === "all" || user.role === userRole;
       const matchesSearch =
         !searchTerm ||
@@ -63,7 +78,7 @@ const Users = () => {
         <AErrorMessage error={error} onRetry={refetch} className="min-h-[320px]" />
       ) : filteredUsers.length ? (
         <div className="mt-6 space-y-3">
-          {filteredUsers.map((user: any) => (
+          {filteredUsers.map((user) => (
             <UserCard key={user.id} user={user} />
           ))}
         </div>

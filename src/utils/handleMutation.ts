@@ -1,11 +1,25 @@
 import { toast } from "sonner";
 
-const handleMutation = async (
-  data: object | string,
-  mutationFunc: any,
+type MutationResult = {
+  success?: boolean;
+  message?: string;
+};
+
+type MutationError = {
+  status?: string | number;
+  data?: {
+    message?: string;
+  };
+};
+
+const handleMutation = async <TData, TResult extends MutationResult = MutationResult>(
+  data: TData,
+  mutationFunc: (data: TData) => {
+    unwrap: () => Promise<TResult>;
+  },
   loadingTxt: string,
-  onSuccess?: unknown,
-  onFailure?: unknown,
+  onSuccess?: ((result: TResult) => void) | unknown,
+  onFailure?: ((error: MutationError | MutationResult) => void) | unknown,
 ) => {
   const toastId = toast.loading(loadingTxt);
 
@@ -29,23 +43,22 @@ const handleMutation = async (
         onFailure(res);
       }
     }
-  } catch (error: any) {
-  console.log(error);
+  } catch (error: unknown) {
+    const parsedError = error as MutationError;
     let errorMessage = "Something went wrong!";
-    if (error.status === "PARSING_ERROR") {
+    if (parsedError.status === "PARSING_ERROR") {
       errorMessage =
         "Server returned invalid data. Please try again or contact support.";
-    } else if (error.data?.message) {
-      errorMessage = error.data.message;
+    } else if (parsedError.data?.message) {
+      errorMessage = parsedError.data.message;
     }
 
     toast.error(errorMessage, {
       id: toastId,
       duration: 4500,
     });
-    console.log("api error: ", error);
     if (typeof onFailure === "function") {
-      onFailure(error);
+      onFailure(parsedError);
     }
   }
 };

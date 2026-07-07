@@ -8,6 +8,16 @@ interface ATextEditorProps {
   placeholder?: string;
 }
 
+type MinimalJoditEditor = {
+  value: string;
+  isReady?: boolean;
+  destruct: () => void;
+  waitForReady: () => Promise<MinimalJoditEditor>;
+  events: {
+    on: (eventName: string, callback: (value?: unknown) => void) => void;
+  };
+};
+
 const JODIT_STYLESHEET_ID = "jodit-editor-stylesheet";
 
 const ensureString = (value: unknown) => {
@@ -23,7 +33,7 @@ const ATextEditor = ({
   placeholder = "Start writing...",
 }: ATextEditorProps) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<MinimalJoditEditor | null>(null);
   const onChangeRef = useRef(onChange);
 
   onChangeRef.current = onChange;
@@ -108,11 +118,14 @@ const ATextEditor = ({
 
       if (!isMounted || !textareaRef.current) return;
 
-      const editor = Jodit.make(textareaRef.current, config as any);
+      const editor = Jodit.make(
+        textareaRef.current,
+        config as never,
+      ) as MinimalJoditEditor;
       editorRef.current = editor;
       editor.value = normalizedContent;
 
-      editor.events.on("change", (updatedContent: string) => {
+      editor.events.on("change", (updatedContent) => {
         onChangeRef.current(ensureString(updatedContent));
       });
 
@@ -133,7 +146,7 @@ const ATextEditor = ({
       } else {
         editorRef.current
           .waitForReady()
-          .then((instance: any) => instance.destruct());
+          .then((instance) => instance.destruct());
       }
 
       editorRef.current = null;
