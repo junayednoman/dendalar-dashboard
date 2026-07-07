@@ -15,6 +15,7 @@ export interface ChapterItem {
   name: string;
   levelId: string;
   index: number;
+  note?: string | null;
   level?: {
     id: string;
     name: string;
@@ -83,6 +84,11 @@ const ChapterCard = ({ chapter, onEdit, onDelete }: ChapterCardProps) => {
           <p className="mt-3 text-sm text-muted-foreground">
             Index {chapter.index}
           </p>
+          {chapter.note ? (
+            <p className="mt-3 line-clamp-3 text-sm text-card-foreground">
+              {chapter.note}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

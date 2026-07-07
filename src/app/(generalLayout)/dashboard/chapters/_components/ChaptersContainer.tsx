@@ -29,6 +29,7 @@ type ChapterApiItem = {
   name: string;
   index: number;
   levelId: string;
+  note?: string | null;
   createdAt: string;
   updatedAt: string;
   level?: {
@@ -191,6 +192,7 @@ const ChaptersContainer = () => {
           name: "",
           levelId: selectedLevel,
           index: 1,
+          note: "",
         }}
         title="Add New Chapter"
         description="Add new chapter within a specific level"
@@ -209,6 +211,7 @@ const ChaptersContainer = () => {
           name: editingChapter?.name ?? "",
           levelId: editingChapter?.levelId ?? "",
           index: editingChapter?.index ?? 1,
+          note: editingChapter?.note ?? "",
         }}
         title="Update Chapter"
         description="Update the chapter details within a specific level"

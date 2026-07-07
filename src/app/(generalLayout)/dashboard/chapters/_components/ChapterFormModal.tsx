@@ -23,6 +23,7 @@ export interface ChapterFormValues {
   name: string;
   levelId: string;
   index: number;
+  note?: string;
 }
 
 interface ChapterFormModalProps {
@@ -40,6 +41,7 @@ const emptyValues: ChapterFormValues = {
   name: "",
   levelId: "",
   index: 1,
+  note: "",
 };
 
 const ChapterFormModal = ({
@@ -87,6 +89,7 @@ const ChapterFormModal = ({
     await onSubmit({
       ...values,
       name: values.name.trim(),
+      note: values.note?.trim() || undefined,
     });
   };
 
@@ -153,6 +156,19 @@ const ChapterFormModal = ({
                 className="h-12 rounded-2xl border-border bg-transparent px-5 text-white"
               />
             </div>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-white">
+              Chapter note
+            </label>
+            <textarea
+              value={values.note || ""}
+              onChange={(event) => handleFieldChange("note", event.target.value)}
+              placeholder="Optional note"
+              rows={4}
+              className="min-h-28 w-full rounded-2xl border border-border bg-transparent px-5 py-3 text-white outline-none placeholder:text-muted-foreground"
+            />
           </div>
 
           <Button

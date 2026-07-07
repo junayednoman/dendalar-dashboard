@@ -6,6 +6,7 @@ import {
   Settings,
   UserRoundCog,
   CircleHelp,
+  Images,
 } from "lucide-react";
 
 type TNavMain = {
@@ -44,6 +45,11 @@ export const navItems: TNavMain = [
     title: "Notifications",
     url: "/dashboard/notifications",
     icon: <Bell />,
+  },
+  {
+    title: "Mascots",
+    url: "/dashboard/mascots",
+    icon: <Images />,
   },
   {
     title: "Settings",
